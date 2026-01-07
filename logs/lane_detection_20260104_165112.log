@@ -1,0 +1,5 @@
+2026-01-04 16:51:12,726 - LaneDetection - INFO - Initializing Lane Violation Detection Pipeline
+2026-01-04 16:51:12,727 - LaneDetection - INFO - Loading YOLOv8 model: yolov8m
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Model loaded successfully on cuda
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Lane detector initialized
+2026-01-04 16:51:21,915 - LaneDetection - ERROR - Task failed: task_0 - Failed to open video source: data/videos/sample.mp4

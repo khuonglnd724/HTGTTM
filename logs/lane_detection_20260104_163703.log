@@ -1,0 +1,27 @@
+2026-01-04 16:37:03,502 - LaneDetection - INFO - ============================================================
+2026-01-04 16:37:03,503 - LaneDetection - INFO - Lane Violation Detection Web Server
+2026-01-04 16:37:03,503 - LaneDetection - INFO - ============================================================
+2026-01-04 16:37:03,506 - LaneDetection - INFO - Web server initialized on port 5000
+2026-01-04 16:37:03,506 - LaneDetection - INFO - Web server initialized on port 5000
+2026-01-04 16:37:03,509 - LaneDetection - INFO - Server starting on http://0.0.0.0:5000
+2026-01-04 16:37:03,509 - LaneDetection - INFO - Server starting on http://0.0.0.0:5000
+2026-01-04 16:37:03,510 - LaneDetection - INFO - Open browser and navigate to http://localhost:{args.port}
+2026-01-04 16:37:03,510 - LaneDetection - INFO - Open browser and navigate to http://localhost:{args.port}
+2026-01-04 16:37:03,510 - LaneDetection - INFO - Press Ctrl+C to stop the server
+2026-01-04 16:37:03,510 - LaneDetection - INFO - Press Ctrl+C to stop the server
+2026-01-04 16:37:03,511 - LaneDetection - INFO - ============================================================
+2026-01-04 16:37:03,511 - LaneDetection - INFO - ============================================================
+2026-01-04 16:51:12,715 - LaneDetection - INFO - File uploaded: 20260104_165112_car2.jpg
+2026-01-04 16:51:12,715 - LaneDetection - INFO - File uploaded: 20260104_165112_car2.jpg
+2026-01-04 16:51:12,721 - LaneDetection - INFO - Processing started: task_0
+2026-01-04 16:51:12,721 - LaneDetection - INFO - Processing started: task_0
+2026-01-04 16:51:12,726 - LaneDetection - INFO - Initializing Lane Violation Detection Pipeline
+2026-01-04 16:51:12,726 - LaneDetection - INFO - Initializing Lane Violation Detection Pipeline
+2026-01-04 16:51:12,727 - LaneDetection - INFO - Loading YOLOv8 model: yolov8m
+2026-01-04 16:51:12,727 - LaneDetection - INFO - Loading YOLOv8 model: yolov8m
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Model loaded successfully on cuda
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Model loaded successfully on cuda
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Lane detector initialized
+2026-01-04 16:51:20,798 - LaneDetection - INFO - Lane detector initialized
+2026-01-04 16:51:21,915 - LaneDetection - ERROR - Task failed: task_0 - Failed to open video source: data/videos/sample.mp4
+2026-01-04 16:51:21,915 - LaneDetection - ERROR - Task failed: task_0 - Failed to open video source: data/videos/sample.mp4

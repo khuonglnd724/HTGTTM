@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lane Violation Detection System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="navbar-brand">
+                <i class="fas fa-traffic-light"></i>
+                <span>Lane Violation Detection</span>
+            </div>
+            <div class="navbar-status">
+                <div class="status-indicator" id="statusIndicator"></div>
+                <span id="statusText">Connecting...</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-menu">
+                <button class="menu-btn active" data-section="upload">
+                    <i class="fas fa-upload"></i>
+                    <span>Upload</span>
+                </button>
+                <button class="menu-btn" data-section="processing">
+                    <i class="fas fa-cogs"></i>
+                    <span>Processing</span>
+                </button>
+                <button class="menu-btn" data-section="results">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Results</span>
+                </button>
+                <button class="menu-btn" data-section="settings">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Settings</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Upload Section -->
+            <section id="upload-section" class="content-section active">
+                <h2>Upload Video/Image</h2>
+                
+                <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag and drop your file here</p>
+                    <p class="small-text">or click to select</p>
+                    <input type="file" id="fileInput" accept="video/mp4,video/avi,image/jpeg,image/png" hidden>
+                </div>
+
+                <div id="uploadProgress" class="upload-progress hidden">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">0%</p>
+                </div>
+
+                <div id="uploadStatus" class="upload-status hidden"></div>
+
+                <!-- Processing Options -->
+                <div class="options-panel">
+                    <h3>Processing Options</h3>
+                    
+                    <div class="form-group">
+                        <label for="modelSelect">YOLO Model</label>
+                        <select id="modelSelect">
+                            <option value="yolov8n">YOLOv8 Nano (⚡ Fast)</option>
+                            <option value="yolov8s">YOLOv8 Small (⚡ Fast)</option>
+                            <option value="yolov8m" selected>YOLOv8 Medium (⚖️ Balanced)</option>
+                            <option value="yolov8l">YOLOv8 Large (Accurate)</option>
+                            <option value="yolov8x">YOLOv8 XLarge (Most Accurate)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confidenceSlider">Confidence Threshold: <span id="confidenceValue">0.5</span></label>
+                        <input type="range" id="confidenceSlider" min="0.1" max="1.0" step="0.1" value="0.5">
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="drawConfidence" checked>
+                            Draw Confidence Scores
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="drawTrajectories" checked>
+                            Draw Vehicle Trajectories
+                        </label>
+                    </div>
+
+                    <button id="processBtn" class="btn btn-primary" disabled>
+                        <i class="fas fa-play"></i> Start Processing
+                    </button>
+                </div>
+            </section>
+
+            <!-- Processing Section -->
+            <section id="processing-section" class="content-section">
+                <h2>Active Processing Tasks</h2>
+                
+                <div id="tasksList" class="tasks-list">
+                    <p class="empty-state">No active tasks</p>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="content-section">
+                <h2>Processing Results</h2>
+                
+                <div class="results-filter">
+                    <button class="filter-btn active" data-filter="all">All</button>
+                    <button class="filter-btn" data-filter="completed">Completed</button>
+                    <button class="filter-btn" data-filter="failed">Failed</button>
+                </div>
+
+                <div id="resultsList" class="results-list">
+                    <p class="empty-state">No results yet</p>
+                </div>
+            </section>
+
+            <!-- Settings Section -->
+            <section id="settings-section" class="content-section">
+                <h2>System Settings</h2>
+                
+                <div class="settings-container">
+                    <div class="settings-group">
+                        <h3>Detection Settings</h3>
+                        <div class="form-group">
+                            <label for="settingsModel">YOLO Model</label>
+                            <select id="settingsModel">
+                                <option value="yolov8n">YOLOv8 Nano</option>
+                                <option value="yolov8s">YOLOv8 Small</option>
+                                <option value="yolov8m">YOLOv8 Medium</option>
+                                <option value="yolov8l">YOLOv8 Large</option>
+                                <option value="yolov8x">YOLOv8 XLarge</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="settingsConfidence">Confidence Threshold</label>
+                            <input type="number" id="settingsConfidence" min="0.1" max="1.0" step="0.1" value="0.5">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="settingsDevice">Device</label>
+                            <select id="settingsDevice">
+                                <option value="cuda">GPU (CUDA)</option>
+                                <option value="cpu">CPU</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="settings-group">
+                        <h3>Lane Detection Settings</h3>
+                        <div class="form-group">
+                            <label for="settingsCanny1">Canny Threshold Low</label>
+                            <input type="number" id="settingsCanny1" value="50">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="settingsCanny2">Canny Threshold High</label>
+                            <input type="number" id="settingsCanny2" value="150">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="settingsHough">Hough Threshold</label>
+                            <input type="number" id="settingsHough" value="50">
+                        </div>
+                    </div>
+
+                    <button id="savSettingsBtn" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Settings
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Task Modal -->
+    <div id="taskModal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">Processing Task</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary modal-close">Close</button>
+                <button id="downloadBtn" class="btn btn-primary hidden">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast"></div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/api.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

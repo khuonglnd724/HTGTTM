@@ -1,0 +1,42 @@
+# Lane Violation Detection System Configuration
+
+# YOLO Model Settings
+yolo:
+  model_name: "yolov8m"  # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
+  confidence_threshold: 0.5
+  iou_threshold: 0.45
+  device: "cuda"  # "cuda" or "cpu"
+
+# Lane Detection Settings
+lane_detection:
+  method: "hough"  # "hough" or "polynomial"
+  canny_threshold1: 50
+  canny_threshold2: 150
+  hough_threshold: 50
+  hough_min_line_length: 50
+  hough_max_line_gap: 10
+
+# Vehicle Tracking Settings
+tracking:
+  max_age: 30  # Frames to keep track of lost objects
+  min_hits: 3  # Frames to confirm detection
+  iou_threshold: 0.3
+
+# Lane Definition Settings
+lanes:
+  num_lanes: 3  # Number of lanes in road
+  lane_width_pixels: 100  # Approximate lane width in pixels
+  
+# Processing Settings
+processing:
+  input_source: "data/videos/sample.mp4"  # Video file, webcam (0), or RTSP stream
+  output_path: "data/outputs/result.mp4"
+  frame_skip: 1  # Process every nth frame
+  draw_trajectories: true
+  draw_confidence: true
+
+# Alert Settings
+alerts:
+  enable_alerts: true
+  alert_type: "box"  # "box", "polygon", or "both"
+  violation_cooldown: 30  # Frames between alerts for same vehicle

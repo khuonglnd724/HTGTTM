@@ -1,0 +1,16 @@
+ultralytics==8.0.238
+opencv-python==4.8.1.78
+numpy==1.24.3
+opencv-contrib-python==4.8.1.78
+torch==2.1.1
+torchvision==0.16.1
+torchaudio==2.1.1
+scikit-learn==1.3.2
+scipy==1.11.4
+matplotlib==3.8.2
+Pillow==10.1.0
+pyyaml==6.0.1
+requests==2.31.0
+Flask==2.3.3
+Flask-CORS==4.0.0
+Werkzeug==2.3.7
