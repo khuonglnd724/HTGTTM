@@ -2,4 +2,4 @@
 pip install -r requirements.txt
 
 # bước 2 
-python main.py
+python run_server.py
