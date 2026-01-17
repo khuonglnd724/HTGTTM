@@ -4,6 +4,8 @@ class App {
     constructor() {
         this.uploadedFile = null;
         this.currentTaskId = null;
+        this.previewUrl = null;
+        this.uploadedFilePath = null;
         this.taskRefreshInterval = null;
         this.statusCheckInterval = null;
 
@@ -108,18 +110,79 @@ class App {
             // Upload file
             const uploadResponse = await api.uploadFile('/upload', this.uploadedFile);
             
-            UI.showToast('File uploaded. Starting processing...', 'info');
+            // Store task ID and preview URL
+            this.currentTaskId = uploadResponse.task_id;
+            this.uploadedFilePath = uploadResponse.filepath;
+            this.previewUrl = uploadResponse.preview_url;
+            
+            // Store in global state for zones editor
+            window.AppState = {
+                currentTaskId: this.currentTaskId,
+                previewUrl: this.previewUrl,
+                uploadedFilePath: this.uploadedFilePath
+            };
+            
+            UI.showToast('File uploaded. Please define zones before processing...', 'info');
 
-            // Determine file type
-            const fileType = this.uploadedFile.type.startsWith('video') ? 'video' : 'image';
+            // Switch to zones view for zone definition
+            UI.showSection('zones');
+            // Ensure zone editor is initialized with current task
+            try {
+                const currentTaskId = this.currentTaskId;
+                if (!window.zoneEditor || window.zoneEditor.taskId !== currentTaskId) {
+                    window.zoneEditor = new ZoneEditor(currentTaskId);
+                }
+            } catch (e) {
+                console.error('Failed to initialize ZoneEditor:', e);
+            }
+            
+            // Show frame preview in zones editor if available
+            if (uploadResponse.preview_url) {
+                const previewImg = document.querySelector('#zonesCanvas');
+                if (previewImg) {
+                    // Load preview as background in zone editor
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = previewImg;
+                        const ctx = canvas.getContext('2d');
+                        canvas.width = 1280;
+                        canvas.height = 720;
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    };
+                    img.src = uploadResponse.preview_url;
+                }
+            }
+        } catch (error) {
+            UI.showToast('Upload error: ' + error.message, 'error');
+            UI.setProcessButtonState(true);
+        }
+    }
 
-            // Start processing
+    async processWithZones() {
+        if (!this.currentTaskId) {
+            UI.showToast('No task selected', 'warning');
+            return;
+        }
+
+        // Get all checked zones from the zones list
+        const checkboxes = document.querySelectorAll('#zonesList .zone-checkbox:checked');
+        if (checkboxes.length === 0) {
+            UI.showToast('Please select at least one zone to process', 'warning');
+            return;
+        }
+
+        const selectedZoneIds = Array.from(checkboxes).map(cb => cb.dataset.zoneId);
+
+        try {
+            UI.setProcessButtonState(false);
+            UI.showToast(`Starting processing for ${selectedZoneIds.length} zone(s)...`, 'info');
+
+            // Start processing with the current task ID and selected zones
             const processResponse = await api.post('/process', {
-                input_path: uploadResponse.filepath,
-                type: fileType
+                task_id: this.currentTaskId,
+                selected_zone_ids: selectedZoneIds
             });
 
-            this.currentTaskId = processResponse.task_id;
             UI.showToast('Processing started!', 'success');
 
             // Switch to processing view
@@ -201,6 +264,23 @@ class App {
             );
         } catch (error) {
             UI.showToast('Error loading task details', 'error');
+        }
+    }
+
+    async viewResult(taskId) {
+        try {
+            const task = await api.get(`/task/${taskId}`);
+            if (!task.result || !task.result.stream_url) {
+                UI.showToast('No result video found', 'warning');
+                return;
+            }
+            const content = `
+                <h4>Result Video</h4>
+                <video style="width: 100%; max-height: 480px;" controls src="${task.result.stream_url}"></video>
+            `;
+            UI.showModal(`Task: ${taskId} - Preview`, content, () => this.downloadTask(taskId));
+        } catch (error) {
+            UI.showToast('Error loading result', 'error');
         }
     }
 

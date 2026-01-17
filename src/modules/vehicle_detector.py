@@ -1,19 +1,20 @@
 """Vehicle detection module using YOLO"""
 import cv2
 import numpy as np
+import torch
 from typing import List, Tuple, Dict
 from ultralytics import YOLO
 from src.utils.logger import Logger
 
 
 class VehicleDetector:
-    """YOLO-based vehicle detector"""
+    """YOLO-based vehicle detector with performance optimizations"""
     
     # Vehicle class indices in YOLO coco dataset
     VEHICLE_CLASSES = {2, 3, 5, 7}  # car, motorcycle, bus, truck
     
     def __init__(self, model_name: str = "yolov8m", confidence_threshold: float = 0.5,
-                 device: str = "cuda"):
+                 device: str = "cuda", half_precision: bool = True, input_size: int = 640):
         """
         Initialize vehicle detector
         
@@ -21,15 +22,34 @@ class VehicleDetector:
             model_name: YOLOv8 model name (n, s, m, l, x)
             confidence_threshold: Confidence threshold for detections
             device: Device to run model on (cuda or cpu)
+            half_precision: Use FP16 for faster GPU inference
+            input_size: YOLO input size (smaller = faster)
         """
         self.model_name = model_name
         self.confidence_threshold = confidence_threshold
+        self.input_size = input_size
+        
+        # Auto-detect CUDA availability
+        cuda_available = torch.cuda.is_available()
+        if device == "auto":
+            device = "cuda" if cuda_available else "cpu"
+            Logger.info(f"Auto-detected device: {device}")
+        elif device == "cuda" and not cuda_available:
+            Logger.warning("CUDA not available, falling back to CPU")
+            device = "cpu"
+        
         self.device = device
+        self.half_precision = half_precision and device == "cuda"  # FP16 only works on CUDA
         
         Logger.info(f"Loading YOLOv8 model: {model_name}")
         self.model = YOLO(f"{model_name}.pt")
         
-        Logger.info(f"Model loaded successfully on {device}")
+        # Move model to device
+        self.model.to(device)
+        if self.half_precision:
+            Logger.info("FP16 half precision will be used for faster inference")
+        
+        Logger.info(f"Model loaded successfully on {device} (input_size={input_size})")
     
     def detect(self, image: np.ndarray) -> Dict:
         """
@@ -85,8 +105,15 @@ class VehicleDetector:
         Returns:
             Detection results with tracking IDs
         """
-        results = self.model.track(image, conf=self.confidence_threshold, 
-                                   persist=True, verbose=False)
+        # Use imgsz for faster inference with smaller input
+        results = self.model.track(
+            image, 
+            conf=self.confidence_threshold, 
+            persist=True, 
+            verbose=False,
+            imgsz=self.input_size,
+            half=self.half_precision
+        )
         result = results[0]
         
         detections = []

@@ -8,6 +8,7 @@ from src.utils.config_loader import ConfigLoader
 from src.utils.logger import Logger
 from src.utils.drawing import DrawingUtils
 from src.utils.video_processor import VideoProcessor
+from src.utils.zone_manager import ZoneManager
 from src.modules.vehicle_detector import VehicleDetector
 from src.modules.lane_detector import LaneDetector
 from src.modules.violation_detector import ViolationDetector
@@ -16,23 +17,30 @@ from src.modules.violation_detector import ViolationDetector
 class LaneViolationPipeline:
     """Main detection pipeline combining all modules"""
     
-    def __init__(self, config_path: str = "configs/config.yaml"):
+    def __init__(self, config_path: str = "configs/config.yaml", input_source=None, output_path=None, task_id=None):
         """
         Initialize pipeline
         
         Args:
             config_path: Path to configuration file
+            input_source: Optional override for video input; if None, do not open here
+            output_path: Optional override for output path
+            task_id: Task ID for loading task-specific zones
         """
         self.config = ConfigLoader(config_path)
+        self.task_id = task_id
+        self.selected_zone_ids = []  # Zones to focus processing on (can be multiple)
         Logger.setup("logs")
         
         Logger.info("Initializing Lane Violation Detection Pipeline")
         
-        # Initialize modules
+        # Initialize modules with performance settings
         self.vehicle_detector = VehicleDetector(
             model_name=self.config.get('yolo.model_name', 'yolov8m'),
             confidence_threshold=self.config.get('yolo.confidence_threshold', 0.5),
-            device=self.config.get('yolo.device', 'cuda')
+            device=self.config.get('yolo.device', 'cuda'),
+            half_precision=self.config.get('yolo.half_precision', True),
+            input_size=self.config.get('yolo.input_size', 640)
         )
         
         self.lane_detector = LaneDetector(
@@ -47,9 +55,18 @@ class LaneViolationPipeline:
             violation_threshold=0.3
         )
         
+        # Initialize zone manager with task-specific zones
+        task_zones_path = f"data/tasks/{task_id}/zones.json" if task_id else 'configs/zones.json'
+        self.zone_manager = ZoneManager(task_zones_path)
+        Logger.info(f"Loaded {len(self.zone_manager.zones)} detection zones from {task_zones_path}")
+        
+        # If no override provided, default to None here to avoid opening sample video prematurely
+        resolved_input = input_source if input_source is not None else None
+        resolved_output = output_path if output_path is not None else self.config.get('processing.output_path')
+        
         self.video_processor = VideoProcessor(
-            input_source=self.config.get('processing.input_source'),
-            output_path=self.config.get('processing.output_path')
+            input_source=resolved_input,
+            output_path=resolved_output
         )
         
         self.frame_skip = self.config.get('processing.frame_skip', 1)
@@ -91,18 +108,45 @@ class LaneViolationPipeline:
         # Detect vehicles with tracking
         detection_result = self.vehicle_detector.detect_with_tracking(frame)
         detections = detection_result['detections']
+        
+        # Filter detections by selected zones if specified
+        if self.selected_zone_ids and len(self.selected_zone_ids) > 0:
+            filtered_detections = []
+            for detection in detections:
+                # Get vehicle center point
+                cx, cy = detection['center']
+                
+                # Check if center is inside ANY of the selected zones
+                in_any_zone = False
+                for zone_id in self.selected_zone_ids:
+                    zone = self.zone_manager.get_zone(zone_id)
+                    if zone and zone.contains_point((cx, cy)):
+                        in_any_zone = True
+                        break
+                
+                if in_any_zone:
+                    filtered_detections.append(detection)
+                    Logger.debug(f"Frame {frame_num}: Vehicle {detection['track_id']} in selected zones")
+                else:
+                    Logger.debug(f"Frame {frame_num}: Vehicle {detection['track_id']} outside all selected zones")
+            
+            detections = filtered_detections
+            Logger.debug(f"Frame {frame_num}: Filtered detections {len(detection_result['detections'])} -> {len(detections)}")
+        
         results['detections'] = detections
         
-        # Detect violations
+        # Detect violations (both lane-based and zone-based)
+        # Pass selected_zone_ids to only check violations in those zones
         if detections:
             violations = self.violation_detector.batch_detect_violations(
-                detections, lane_boundaries
+                detections, lane_boundaries, self.zone_manager,
+                selected_zone_ids=self.selected_zone_ids
             )
             results['violations'] = violations
             
-            # Count violations
+            # Count violations (only if confirmed by consecutive frames)
             for violation in violations:
-                if violation['is_violating']:
+                if violation['is_violating'] and violation.get('consecutive_violations', 0) >= 3:
                     self.violation_count += 1
         
         return results
@@ -119,6 +163,34 @@ class LaneViolationPipeline:
             Annotated frame
         """
         frame_copy = frame.copy()
+        
+        # Draw zones: only selected zones if specified, otherwise all zones
+        if self.selected_zone_ids and len(self.selected_zone_ids) > 0:
+            # Draw only the selected zones with highlight
+            for zone_id in self.selected_zone_ids:
+                zone = self.zone_manager.get_zone(zone_id)
+                if zone:
+                    # Draw selected zone with highlight using alpha blending
+                    polygon = np.array(zone.polygon, dtype=np.int32)
+                    
+                    # Create overlay for transparent fill
+                    overlay = frame_copy.copy()
+                    cv2.fillPoly(overlay, [polygon], (0, 255, 255))  # Yellow fill
+                    cv2.addWeighted(overlay, 0.2, frame_copy, 0.8, 0, frame_copy)  # 20% opacity
+                    
+                    # Draw border
+                    cv2.polylines(frame_copy, [polygon], True, (0, 255, 255), 3)  # Yellow border
+                    
+                    # Add zone label
+                    if zone.polygon:
+                        x, y = zone.polygon[0]
+                        cv2.putText(frame_copy, zone.name, (int(x), int(y)-10), 
+                                  cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+                    Logger.debug(f"Drew selected zone: {zone_id}")
+        else:
+            # Draw all zones (default behavior if no selection)
+            if len(self.zone_manager.zones) > 0:
+                frame_copy = self.zone_manager.draw_zones(frame_copy, alpha=0.25)
         
         # Draw lane boundaries
         lane_boundaries = results.get('lane_boundaries', {})
@@ -143,8 +215,10 @@ class LaneViolationPipeline:
             confidence = detection['confidence']
             
             is_violating = violation_info['is_violating']
+            consecutive = violation_info.get('consecutive_violations', 0)
             
-            if is_violating:
+            # Only show VIOLATION label if detected in 3+ consecutive frames
+            if is_violating and consecutive >= 3:
                 # Draw violation box
                 DrawingUtils.draw_alert_box(frame_copy, box, 
                                           message=f"VIOLATION #{track_id}")
@@ -166,10 +240,12 @@ class LaneViolationPipeline:
                 cv2.circle(frame_copy, (int(cx), int(cy)), 3, (0, 255, 0), -1)
         
         # Draw statistics
+        # Count only confirmed violations (3+ consecutive frames)
+        confirmed_violations = [v for v in violations if v['is_violating'] and v.get('consecutive_violations', 0) >= 3]
         stats_text = [
             f"Frame: {results['frame_num']}",
             f"Detections: {len(results['detections'])}",
-            f"Violations: {len([v for v in violations if v['is_violating']])}",
+            f"Violations: {len(confirmed_violations)}",
             f"Total Violations: {self.violation_count}"
         ]
         

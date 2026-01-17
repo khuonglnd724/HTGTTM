@@ -27,6 +27,7 @@ class ProcessingTask:
         self.error_message = None
         self.result = None
         self.analytics = None
+        self.selected_zone_ids = []  # Zones to focus processing on
 
 
 class WebServer:
@@ -37,13 +38,16 @@ class WebServer:
         self.app = Flask(__name__)
         CORS(self.app)
         
+        # Get project root (parent of app directory)
+        self.project_root = Path(__file__).parent.parent
+        
         self.port = port
         self.config_path = config_path
         self.pipeline = None
         
         # Configuration
         self.app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 500  # 500MB max
-        self.app.config['UPLOAD_FOLDER'] = 'data/videos'
+        self.app.config['UPLOAD_FOLDER'] = str(self.project_root / 'data' / 'videos')
         self.ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv', 'jpg', 'jpeg', 'png'}
         
         # Task management
@@ -80,7 +84,7 @@ class WebServer:
         
         @self.app.route('/api/upload', methods=['POST'])
         def upload_file():
-            """Upload video file"""
+            """Upload video file and extract first frame for zone drawing"""
             try:
                 if 'file' not in request.files:
                     return jsonify({'error': 'No file provided'}), 400
@@ -105,33 +109,123 @@ class WebServer:
                 
                 Logger.info(f"File uploaded: {filename}")
                 
+                # Extract first frame for zone drawing
+                frame_preview_path = None
+                try:
+                    video = cv2.VideoCapture(str(filepath))
+                    if video.isOpened():
+                        ret, frame = video.read()
+                        if ret:
+                            # Resize to fit browser
+                            frame_resized = cv2.resize(frame, (1280, 720))
+                            frame_preview_path = str(upload_dir / f"{filename}_preview.jpg")
+                            cv2.imwrite(frame_preview_path, frame_resized)
+                            Logger.info(f"Frame preview saved: {frame_preview_path}")
+                        video.release()
+                except Exception as e:
+                    Logger.warning(f"Error extracting frame preview: {str(e)}")
+                
+                # Create task immediately
+                task_id = f"task_{self.task_counter}"
+                self.task_counter += 1
+                
+                # Create task-specific directory for zones
+                task_dir = Path(self.app.config['UPLOAD_FOLDER']).parent / 'tasks' / task_id
+                task_dir.mkdir(parents=True, exist_ok=True)
+                
+                task = ProcessingTask(task_id, str(filepath), task_type='video')
+                self.tasks[task_id] = task
+                
+                Logger.info(f"Task created during upload: {task_id}")
+                
                 return jsonify({
                     'success': True,
                     'filename': filename,
-                    'filepath': str(filepath)
+                    'filepath': str(filepath),
+                    'preview_url': f'/api/preview/{filename}_preview.jpg' if frame_preview_path else None,
+                    'task_id': task_id
                 })
             
             except Exception as e:
                 Logger.error(f"Upload error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
         
-        @self.app.route('/api/process', methods=['POST'])
-        def process():
-            """Start processing task"""
+        @self.app.route('/api/create-task', methods=['POST'])
+        def create_task():
+            """Create a new task (called after upload)"""
             try:
                 data = request.get_json()
-                input_path = data.get('input_path')
-                task_type = data.get('type', 'video')
+                filename = data.get('filename')
                 
-                if not input_path:
-                    return jsonify({'error': 'No input path provided'}), 400
+                if not filename:
+                    return jsonify({'error': 'No filename provided'}), 400
                 
                 # Create task
                 task_id = f"task_{self.task_counter}"
                 self.task_counter += 1
                 
-                task = ProcessingTask(task_id, input_path, task_type)
+                # Create task-specific directory for zones
+                task_dir = Path(self.app.config['UPLOAD_FOLDER']).parent / 'tasks' / task_id
+                task_dir.mkdir(parents=True, exist_ok=True)
+                
+                task = ProcessingTask(task_id, f"{self.app.config['UPLOAD_FOLDER']}/{filename}")
                 self.tasks[task_id] = task
+                
+                Logger.info(f"Task created: {task_id} for {filename}")
+                
+                return jsonify({
+                    'success': True,
+                    'task_id': task_id
+                })
+            
+            except Exception as e:
+                Logger.error(f"Create task error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/preview/<filename>', methods=['GET'])
+        def get_preview(filename):
+            """Get video frame preview for zone drawing"""
+            try:
+                # Use the absolute path from config
+                preview_path = Path(self.app.config['UPLOAD_FOLDER']) / filename
+                Logger.info(f"Looking for preview at: {preview_path}")
+                
+                if not preview_path.exists():
+                    Logger.error(f"Preview not found: {preview_path}")
+                    return jsonify({'error': 'Preview not found'}), 404
+                
+                return send_file(
+                    str(preview_path),
+                    mimetype='image/jpeg',
+                    as_attachment=False
+                )
+            except Exception as e:
+                Logger.error(f"Preview error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/process', methods=['POST'])
+        def process():
+            """Start processing task - called AFTER zones are defined"""
+            try:
+                data = request.get_json()
+                task_id = data.get('task_id')
+                selected_zone_ids = data.get('selected_zone_ids', [])
+                
+                if not task_id:
+                    return jsonify({'error': 'Missing task_id'}), 400
+                
+                # Task must already exist from upload
+                if task_id not in self.tasks:
+                    return jsonify({'error': f'Task {task_id} not found'}), 404
+                
+                task = self.tasks[task_id]
+                
+                # Store selected zone IDs in task for zone-filtered processing
+                if selected_zone_ids and isinstance(selected_zone_ids, list):
+                    task.selected_zone_ids = selected_zone_ids
+                    Logger.info(f"[{task_id}] Selected zones for processing: {selected_zone_ids}")
+                else:
+                    Logger.warning(f"[{task_id}] No zones selected for processing")
                 
                 # Start processing in background
                 thread = threading.Thread(
@@ -145,7 +239,8 @@ class WebServer:
                 
                 return jsonify({
                     'success': True,
-                    'task_id': task_id
+                    'task_id': task_id,
+                    'selected_zone_ids': selected_zone_ids
                 })
             
             except Exception as e:
@@ -162,6 +257,20 @@ class WebServer:
                 # Convert source (0 for webcam, or RTSP URL)
                 if source == '0':
                     source = 0
+                else:
+                    # Handle file path - convert to absolute path
+                    source_path = Path(source)
+                    if not source_path.is_absolute():
+                        # If relative path, resolve from project root
+                        source_path = Path.cwd() / source
+                    
+                    # Validate file exists
+                    if not source_path.exists():
+                        Logger.error(f"Video file not found: {source_path}")
+                        return jsonify({'error': f'Video file not found: {source_path}'}), 404
+                    
+                    source = str(source_path)
+                    Logger.info(f"Opening video file: {source}")
                 
                 def generate():
                     """Generate video frames"""
@@ -271,6 +380,34 @@ class WebServer:
             except Exception as e:
                 Logger.error(f"Download error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/result/<task_id>/stream', methods=['GET'])
+        def stream_result(task_id):
+            """Stream processed video for inline playback"""
+            try:
+                if task_id not in self.tasks:
+                    return jsonify({'error': 'Task not found'}), 404
+                task = self.tasks[task_id]
+                if task.status != 'completed' or not task.result:
+                    return jsonify({'error': 'Task not completed'}), 400
+
+                result_path = Path(task.result['output_path'])
+                if not result_path.exists():
+                    return jsonify({'error': 'Result file not found'}), 404
+
+                # Use send_file with conditional support for range requests (Flask>=2.0)
+                # Pick mimetype based on extension
+                ext = result_path.suffix.lower()
+                mime = 'video/mp4' if ext == '.mp4' else 'video/x-msvideo'
+                return send_file(
+                    str(result_path),
+                    mimetype=mime,
+                    as_attachment=False,
+                    conditional=True
+                )
+            except Exception as e:
+                Logger.error(f"Stream result error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
         
         @self.app.route('/api/config', methods=['GET'])
         def get_config():
@@ -302,6 +439,101 @@ class WebServer:
             except Exception as e:
                 Logger.error(f"Config update error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/zones/<task_id>', methods=['GET'])
+        def get_zones_for_task(task_id):
+            """Get zones for specific task/video"""
+            try:
+                task_zones_path = Path('data/tasks') / task_id / 'zones.json'
+                
+                if not task_zones_path.exists():
+                    return jsonify({
+                        'success': True,
+                        'zones': []
+                    })
+                
+                with open(task_zones_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                
+                return jsonify({
+                    'success': True,
+                    'zones': data.get('zones', [])
+                })
+            except Exception as e:
+                Logger.error(f"Get zones error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/zones/<task_id>', methods=['POST'])
+        def add_zone_for_task(task_id):
+            """Add zone to specific task/video"""
+            try:
+                data = request.get_json()
+                
+                # Create task zones directory
+                task_zones_dir = Path('data/tasks') / task_id
+                task_zones_dir.mkdir(parents=True, exist_ok=True)
+                task_zones_path = task_zones_dir / 'zones.json'
+                
+                # Load existing zones
+                zones_data = {'zones': []}
+                if task_zones_path.exists():
+                    with open(task_zones_path, 'r', encoding='utf-8') as f:
+                        zones_data = json.load(f)
+                
+                # Add new zone
+                zone = {
+                    'zone_id': data['zone_id'],
+                    'name': data['name'],
+                    'polygon': data['polygon'],
+                    'allowed_classes': data['allowed_classes'],
+                    'color': data.get('color', [0, 255, 0]),
+                    'base_width': data.get('base_width'),
+                    'base_height': data.get('base_height')
+                }
+                
+                # Check if zone exists, replace if so
+                zones_data['zones'] = [z for z in zones_data.get('zones', []) if z['zone_id'] != zone['zone_id']]
+                zones_data['zones'].append(zone)
+                
+                # Save zones
+                with open(task_zones_path, 'w', encoding='utf-8') as f:
+                    json.dump(zones_data, f, indent=2, ensure_ascii=False)
+                
+                Logger.info(f"Zone added to {task_id}: {zone['name']}")
+                
+                return jsonify({
+                    'success': True,
+                    'zone': zone
+                })
+            except Exception as e:
+                Logger.error(f"Add zone error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+        
+        @self.app.route('/api/zones/<task_id>/<zone_id>', methods=['DELETE'])
+        def delete_zone_for_task(task_id, zone_id):
+            """Delete zone from specific task"""
+            try:
+                task_zones_path = Path('data/tasks') / task_id / 'zones.json'
+                
+                if not task_zones_path.exists():
+                    return jsonify({'error': 'No zones found'}), 404
+                
+                with open(task_zones_path, 'r', encoding='utf-8') as f:
+                    zones_data = json.load(f)
+                
+                # Remove zone
+                zones_data['zones'] = [z for z in zones_data.get('zones', []) if z['zone_id'] != zone_id]
+                
+                # Save updated zones
+                with open(task_zones_path, 'w', encoding='utf-8') as f:
+                    json.dump(zones_data, f, indent=2, ensure_ascii=False)
+                
+                Logger.info(f"Zone deleted from {task_id}: {zone_id}")
+                
+                return jsonify({'success': True})
+            except Exception as e:
+                Logger.error(f"Delete zone error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
     
     def _allowed_file(self, filename):
         """Check if file type is allowed"""
@@ -316,13 +548,53 @@ class WebServer:
             task.start_time = datetime.now()
             task.progress = 0
             
-            # Initialize pipeline
-            pipeline = LaneViolationPipeline(self.config_path)
+            # Initialize pipeline with task_id for task-specific zone loading
+            Logger.info(f"[Task {task_id}] Initializing pipeline with config: {self.config_path}")
+            # Do not open video during pipeline init; set later after validating path
+            pipeline = LaneViolationPipeline(self.config_path, input_source=None, output_path=None, task_id=task_id)
+            Logger.info(f"[Task {task_id}] Pipeline initialized with task-specific zones")
             
-            # Set input/output
+            # Set input/output - resolve to absolute paths
             input_path = task.input_path
-            output_path = f"data/outputs/{task.task_id}_result.mp4"
+            Logger.info(f"[Task {task_id}] Original input_path: {input_path}")
             
+            input_path_obj = Path(input_path)
+            if not input_path_obj.is_absolute():
+                input_path = str(Path.cwd() / input_path)
+                Logger.info(f"[Task {task_id}] Converted to absolute: {input_path}")
+            
+            # Validate input file exists
+            if not Path(input_path).exists():
+                raise FileNotFoundError(f"Input file not found: {input_path}")
+            
+            Logger.info(f"[Task {task_id}] Input file validated: {input_path}")
+            
+            # Create output directory if needed
+            output_dir = Path.cwd() / "data/outputs"
+            output_dir.mkdir(parents=True, exist_ok=True)
+            output_path = str(output_dir / f"{task.task_id}_result.mp4")
+            
+            Logger.info(f"[Task {task_id}] Setting video source to: {input_path}")
+            # Set input source - this will trigger the property setter to open the video
+            pipeline.video_processor.input_source = input_path
+            Logger.info(f"[Task {task_id}] Video source set successfully")
+            
+            pipeline.video_processor.output_path = output_path
+            
+            # Rescale zones to match the actual video resolution so coordinates align
+            try:
+                vw, vh = pipeline.video_processor.width, pipeline.video_processor.height
+                pipeline.zone_manager.rescale_to(vw, vh)
+                Logger.info(f"[Task {task_id}] Zones rescaled to video size: {vw}x{vh}")
+            except Exception as e:
+                Logger.warning(f"[Task {task_id}] Failed to rescale zones: {e}")
+            
+            # Store selected zone IDs in pipeline for zone-filtered processing
+            if hasattr(task, 'selected_zone_ids') and task.selected_zone_ids:
+                pipeline.selected_zone_ids = task.selected_zone_ids
+                Logger.info(f"[Task {task_id}] Pipeline configured for zone-filtered processing: {task.selected_zone_ids}")
+            
+            Logger.info(f"[Task {task_id}] Processing: input={input_path}, output={output_path}")
             task.progress = 10
             
             if task.task_type == 'video':
@@ -330,41 +602,115 @@ class WebServer:
                 pipeline.video_processor.input_source = input_path
                 pipeline.video_processor.output_path = output_path
                 
+                # Get total frames for progress calculation
+                total_frames = pipeline.video_processor.cap.get(cv2.CAP_PROP_FRAME_COUNT) if pipeline.video_processor.cap else 1
+                Logger.info(f"[Task {task_id}] Total frames to process: {total_frames}")
+
+                # Read and validate first frame to avoid producing empty videos
+                first_frame = pipeline.video_processor.read_frame()
+                if first_frame is None:
+                    raise RuntimeError(f"[Task {task_id}] Could not read first frame from: {input_path}")
+                
                 # Initialize analytics
+                
                 analytics = AnalyticsCollector()
                 analytics.start_timing()
                 
                 frame_count = 0
                 
+                # Process the first frame already read
+                try:
+                    results = pipeline.process_frame(first_frame, frame_count)
+                    annotated = pipeline.draw_results(first_frame, results)
+                    pipeline.video_processor.write_frame(annotated)
+                    detections_count = len(results.get('detections', []))
+                    violations_count = len([v for v in results.get('violations', []) if v.get('is_violating')])
+                    analytics.record_frame_data(frame_count, detections_count, violations_count)
+                    for v in results.get('violations', []):
+                        if v.get('is_violating') and v.get('track_id') is not None:
+                            analytics.record_violation(v['track_id'])
+                except Exception as frame_error:
+                    Logger.warning(f"[Task {task_id}] Error processing frame {frame_count}: {str(frame_error)}")
+                frame_count += 1
+
                 while True:
                     frame = pipeline.video_processor.read_frame()
                     if frame is None:
                         break
                     
-                    results = pipeline.process_frame(frame, frame_count)
-                    annotated = pipeline.draw_results(frame, results)
-                    pipeline.video_processor.write_frame(annotated)
+                    try:
+                        results = pipeline.process_frame(frame, frame_count)
+                        annotated = pipeline.draw_results(frame, results)
+                        pipeline.video_processor.write_frame(annotated)
+
+                        # Record analytics per frame
+                        detections_count = len(results.get('detections', []))
+                        violations_count = len([v for v in results.get('violations', []) if v.get('is_violating')])
+                        analytics.record_frame_data(frame_count, detections_count, violations_count)
+                        for v in results.get('violations', []):
+                            if v.get('is_violating') and v.get('track_id') is not None:
+                                analytics.record_violation(v['track_id'])
+                    except Exception as frame_error:
+                        Logger.warning(f"[Task {task_id}] Error processing frame {frame_count}: {str(frame_error)}")
+                        # Continue to next frame even if one fails
+                        pass
                     
-                    # Update progress
+                    # Update progress - calculate based on actual total frames
                     frame_count += 1
-                    task.progress = min(90, int((frame_count / 300) * 80) + 10)
+                    if total_frames > 0:
+                        progress = int((frame_count / total_frames) * 90) + 10
+                        task.progress = min(90, progress)
+                    
+                    if frame_count % 100 == 0:
+                        Logger.info(f"[Task {task_id}] Processed {frame_count}/{int(total_frames)} frames, progress: {task.progress}%")
                 
-                analytics.end_timing()
-                pipeline.video_processor.release()
+                Logger.info(f"[Task {task_id}] Frame processing complete. Total frames: {frame_count}")
+                
+                # Release resources and ensure file is written
+                try:
+                    pipeline.video_processor.release()
+                    Logger.info(f"[Task {task_id}] Video processor released successfully")
+                    # Give the system a moment to ensure all writes are flushed
+                    import time
+                    time.sleep(1)
+                except Exception as release_error:
+                    Logger.error(f"[Task {task_id}] Error releasing video processor: {str(release_error)}")
+                    raise
                 
                 # Collect stats
+                analytics.end_timing()
                 stats = analytics.get_statistics()
                 task.analytics = stats
+                Logger.info(f"[Task {task_id}] Analytics: {stats}")
                 
             elif task.task_type == 'image':
-                # Process image
-                pipeline.process_image(input_path, output_path)
+                # Process image: rescale zones to image size and save annotated image
+                img = cv2.imread(input_path)
+                if img is None:
+                    raise RuntimeError(f"[Task {task_id}] Failed to read image: {input_path}")
+                ih, iw = img.shape[0], img.shape[1]
+                try:
+                    pipeline.zone_manager.rescale_to(iw, ih)
+                    Logger.info(f"[Task {task_id}] Zones rescaled to image size: {iw}x{ih}")
+                except Exception as e:
+                    Logger.warning(f"[Task {task_id}] Failed to rescale zones for image: {e}")
+                
+                # Build image output path with proper extension
+                img_ext = Path(input_path).suffix.lower() or '.jpg'
+                img_out = Path(output_dir) / f"{task.task_id}_result{img_ext}"
+                pipeline.process_image(input_path, str(img_out))
                 task.analytics = {'frames_processed': 1}
             
             task.progress = 100
+            # Use actual output path (may have changed due to codec fallback)
+            if task.task_type == 'image':
+                actual_output = str(img_out)
+            else:
+                actual_output = pipeline.video_processor.output_path or output_path
             task.result = {
-                'output_path': output_path,
-                'timestamp': datetime.now().isoformat()
+                'output_path': actual_output,
+                'timestamp': datetime.now().isoformat(),
+                'stream_url': f"/api/result/{task_id}/stream"
             }
             task.status = 'completed'
             

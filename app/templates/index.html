@@ -39,6 +39,10 @@
                     <i class="fas fa-chart-bar"></i>
                     <span>Results</span>
                 </button>
+                <button class="menu-btn" data-section="zones">
+                    <i class="fas fa-draw-polygon"></i>
+                    <span>Zones</span>
+                </button>
                 <button class="menu-btn" data-section="settings">
                     <i class="fas fa-sliders-h"></i>
                     <span>Settings</span>
@@ -132,6 +136,76 @@
                 </div>
             </section>
 
+            <!-- Zones Section -->
+            <section id="zones-section" class="content-section">
+                <h2>Detection Zones</h2>
+                <p class="section-description">Define zones and restrict vehicle types per lane</p>
+                
+                <div class="zones-toolbar">
+                    <button id="addZoneBtn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Zone
+                    </button>
+                    <button id="clearZonesBtn" class="btn btn-secondary">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                </div>
+
+                <div class="zones-container">
+                    <div class="zones-canvas-wrapper">
+                        <canvas id="zonesCanvas" width="1280" height="720"></canvas>
+                        <div id="canvasInstructions" class="canvas-instructions">
+                            Click to add points. Double-click to complete polygon.
+                        </div>
+                    </div>
+
+                    <div class="zones-list-panel">
+                        <h3>Zones List</h3>
+                        <div id="zonesList" class="zones-list">
+                            <p class="empty-state">No zones defined</p>
+                        </div>
+                        
+                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <button id="processBtn" class="btn btn-success btn-block" onclick="app.processWithZones()">
+                                <i class="fas fa-play"></i> Start Processing
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Zone Editor Modal -->
+                <div id="zoneEditorModal" class="modal hidden">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h3>Configure Zone</h3>
+                            <button class="modal-close">&times;</button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="zoneName">Zone Name</label>
+                                <input type="text" id="zoneName" placeholder="e.g., Car Lane 1">
+                            </div>
+                            <div class="form-group">
+                                <label>Allowed Vehicle Types</label>
+                                <div class="checkbox-group">
+                                    <label><input type="checkbox" value="car" class="vehicle-type-check"> Car</label>
+                                    <label><input type="checkbox" value="motorcycle" class="vehicle-type-check"> Motorcycle</label>
+                                    <label><input type="checkbox" value="bus" class="vehicle-type-check"> Bus</label>
+                                    <label><input type="checkbox" value="truck" class="vehicle-type-check"> Truck</label>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="zoneColor">Zone Color</label>
+                                <input type="color" id="zoneColor" value="#00ff00">
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button class="btn btn-secondary modal-close">Cancel</button>
+                            <button id="saveZoneBtn" class="btn btn-primary">Save Zone</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Settings Section -->
             <section id="settings-section" class="content-section">
                 <h2>System Settings</h2>
@@ -213,6 +287,7 @@
     <!-- Scripts -->
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/zones.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

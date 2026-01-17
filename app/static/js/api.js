@@ -49,6 +49,10 @@ class APIClient {
         return this.request('DELETE', endpoint);
     }
 
+    async delete(endpoint) {
+        return this.request('DELETE', endpoint);
+    }
+
     async uploadFile(endpoint, file) {
         const formData = new FormData();
         formData.append('file', file);

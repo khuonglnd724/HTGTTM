@@ -97,20 +97,45 @@ class ViolationDetector:
         return min(violation_score, 1.0)
     
     def detect_violation(self, vehicle_box: Tuple, track_id: int,
-                        lane_boundaries: Dict) -> Dict:
+                        lane_boundaries: Dict, zone_manager=None, 
+                        vehicle_class: str = None,
+                        selected_zone_ids: List[str] = None) -> Dict:
         """
-        Detect if vehicle is violating lane rules
+        Detect if vehicle is violating lane rules or zone restrictions
         
         Args:
             vehicle_box: Vehicle bounding box
             track_id: Vehicle tracking ID
             lane_boundaries: Lane boundary information
+            zone_manager: ZoneManager instance for zone-based detection
+            vehicle_class: Vehicle class name for zone checking
+            selected_zone_ids: Only check these zones for violations
             
         Returns:
             Dictionary with violation information
         """
-        violation_score = self.calculate_violation_score(vehicle_box, lane_boundaries)
-        is_violating = violation_score > self.violation_threshold
+        # Check lane-based violation (disabled when using zone-based detection)
+        violation_score = 0
+        is_lane_violating = False
+        
+        # Only use lane-based detection if no zones are selected
+        if not selected_zone_ids or len(selected_zone_ids) == 0:
+            violation_score = self.calculate_violation_score(vehicle_box, lane_boundaries)
+            is_lane_violating = violation_score > self.violation_threshold
+        
+        # Check zone-based violation (only in selected zones)
+        is_zone_violating = False
+        zone_violation_info = None
+        
+        if zone_manager and vehicle_class and selected_zone_ids:
+            vehicle_center = self.get_vehicle_bottom_center(vehicle_box)
+            zone_violation_info = zone_manager.check_violation(
+                vehicle_center, vehicle_class, selected_zone_ids
+            )
+            is_zone_violating = zone_violation_info['is_violating']
+        
+        # Combined violation status
+        is_violating = is_lane_violating or is_zone_violating
         
         # Update violation history
         if track_id not in self.violation_history:
@@ -131,19 +156,25 @@ class ViolationDetector:
         return {
             'track_id': track_id,
             'is_violating': is_violating,
+            'lane_violation': is_lane_violating,
+            'zone_violation': is_zone_violating,
             'violation_score': violation_score,
+            'zone_info': zone_violation_info,
             'consecutive_violations': self.violation_history[track_id]['consecutive_violations'],
             'total_violations': self.violation_history[track_id]['total_violations']
         }
     
     def batch_detect_violations(self, detections: List[Dict],
-                               lane_boundaries: Dict) -> List[Dict]:
+                               lane_boundaries: Dict, zone_manager=None,
+                               selected_zone_ids: List[str] = None) -> List[Dict]:
         """
         Detect violations for multiple vehicles
         
         Args:
             detections: List of detection dictionaries
             lane_boundaries: Lane boundary information
+            zone_manager: ZoneManager instance for zone-based detection
+            selected_zone_ids: List of zone IDs to check violations in (only these zones)
             
         Returns:
             List of violation detection results
@@ -153,8 +184,12 @@ class ViolationDetector:
         for detection in detections:
             vehicle_box = detection['box']
             track_id = detection.get('track_id', -1)
+            vehicle_class = detection.get('class_name', 'unknown')
             
-            violation_info = self.detect_violation(vehicle_box, track_id, lane_boundaries)
+            violation_info = self.detect_violation(
+                vehicle_box, track_id, lane_boundaries, 
+                zone_manager, vehicle_class, selected_zone_ids
+            )
             violation_info['detection'] = detection
             violations.append(violation_info)
         

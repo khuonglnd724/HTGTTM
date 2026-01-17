@@ -14,3 +14,6 @@ requests==2.31.0
 Flask==2.3.3
 Flask-CORS==4.0.0
 Werkzeug==2.3.7
+lapx>=0.5.2
+imageio==2.34.0
+imageio-ffmpeg==0.4.9

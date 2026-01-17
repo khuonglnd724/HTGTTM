@@ -3,9 +3,11 @@
 # YOLO Model Settings
 yolo:
   model_name: "yolov8m"  # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
-  confidence_threshold: 0.5
+  confidence_threshold: 0.65  # Increased for better accuracy
   iou_threshold: 0.45
-  device: "cuda"  # "cuda" or "cpu"
+  device: "auto"  # "cuda", "cpu", or "auto" (auto-detect)
+  half_precision: true  # Use FP16 for faster GPU inference
+  input_size: 640  # YOLO input size (320, 416, 640, 1280) - smaller = faster
 
 # Lane Detection Settings
 lane_detection:
@@ -31,9 +33,10 @@ lanes:
 processing:
   input_source: "data/videos/sample.mp4"  # Video file, webcam (0), or RTSP stream
   output_path: "data/outputs/result.mp4"
-  frame_skip: 1  # Process every nth frame
+  frame_skip: 2  # Process every nth frame (2 = skip 1, process 1)
   draw_trajectories: true
   draw_confidence: true
+  max_resolution: 1920  # Downscale if larger than this
 
 # Alert Settings
 alerts:

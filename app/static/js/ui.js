@@ -126,6 +126,8 @@ class UI {
             'failed': 'danger'
         };
 
+        const hasVideo = task.result && task.result.stream_url;
+
         return `
             <div class="task-card">
                 <div class="task-header">
@@ -159,6 +161,11 @@ class UI {
                     <button class="btn btn-secondary small" onclick="app.viewTask('${task.task_id}')">
                         <i class="fas fa-eye"></i> Details
                     </button>
+                    ${hasVideo ? `
+                        <button class="btn btn-primary small" onclick="app.viewResult('${task.task_id}')">
+                            <i class="fas fa-play"></i> Play
+                        </button>
+                    ` : ''}
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary small" onclick="app.downloadTask('${task.task_id}')">
                             <i class="fas fa-download"></i> Download
@@ -303,6 +310,13 @@ class UI {
             html += `
                 <h4 style="color: var(--danger-color);">Error</h4>
                 <p>${task.error_message}</p>
+            `;
+        }
+
+        if (task.result && task.result.stream_url) {
+            html += `
+                <h4>Result Video</h4>
+                <video style="width: 100%; max-height: 360px;" controls src="${task.result.stream_url}"></video>
             `;
         }
 
