@@ -206,13 +206,19 @@ class UI {
     }
 
     static updateConfidenceSlider(value) {
-        document.getElementById('confidenceValue').textContent = value.toFixed(1);
+        const num = Number(value);
+        if (Number.isFinite(num)) {
+            document.getElementById('confidenceValue').textContent = num.toFixed(1);
+        } else {
+            document.getElementById('confidenceValue').textContent = value;
+        }
     }
 
     static getFormData() {
         return {
             model: document.getElementById('modelSelect').value,
             confidence: parseFloat(document.getElementById('confidenceSlider').value),
+            frame_skip: parseInt(document.getElementById('frameSkipInput')?.value || '1', 10),
             drawConfidence: document.getElementById('drawConfidence').checked,
             drawTrajectories: document.getElementById('drawTrajectories').checked
         };

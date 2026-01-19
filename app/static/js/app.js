@@ -47,10 +47,13 @@ class App {
             this.handleFileSelect(e.target.files[0]);
         });
 
-        // Confidence slider
-        document.getElementById('confidenceSlider').addEventListener('change', (e) => {
-            UI.updateConfidenceSlider(e.target.value);
-        });
+        // Confidence slider - update live while dragging
+        const confSlider = document.getElementById('confidenceSlider');
+        if (confSlider) {
+            confSlider.addEventListener('input', (e) => {
+                UI.updateConfidenceSlider(e.target.value);
+            });
+        }
 
         // Process button: navigate to zones UI or start upload+zones when file present
         const processBtn = document.getElementById('processBtn');
@@ -195,10 +198,14 @@ class App {
             UI.setProcessButtons(false, false);
             UI.showToast(`Bắt đầu xử lý cho ${selectedZoneIds.length} vùng...`, 'info');
 
-            // Start processing with the current task ID and selected zones
+            // Include current form options (model, confidence, frame_skip, draw flags)
+            const options = UI.getFormData();
+
+            // Start processing with the current task ID, selected zones and options
             const processResponse = await api.post('/process', {
                 task_id: this.currentTaskId,
-                selected_zone_ids: selectedZoneIds
+                selected_zone_ids: selectedZoneIds,
+                options: options
             });
 
             UI.showToast('Đã bắt đầu xử lý!', 'success');

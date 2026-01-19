@@ -8,6 +8,7 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import RequestedRangeNotSatisfiable
 
 from src.pipeline import LaneViolationPipeline
 from src.utils.logger import Logger
@@ -250,6 +251,10 @@ class WebServer:
                     task.selected_zone_ids = [z.get('zone_id') for z in zones_list]
                     Logger.info(f"[{task_id}] No zones explicitly selected; defaulting to all zones: {task.selected_zone_ids}")
                 
+                # Store processing options (model, confidence, frame_skip, etc.) if provided
+                options = data.get('options', {}) if isinstance(data, dict) else {}
+                task.options = options
+
                 # Start processing in background
                 thread = threading.Thread(
                     target=self._process_task,
@@ -449,12 +454,17 @@ class WebServer:
                 # Pick mimetype based on extension
                 ext = result_path.suffix.lower()
                 mime = 'video/mp4' if ext == '.mp4' else 'video/x-msvideo'
-                return send_file(
-                    str(result_path),
-                    mimetype=mime,
-                    as_attachment=False,
-                    conditional=True
-                )
+                try:
+                    return send_file(
+                        str(result_path),
+                        mimetype=mime,
+                        as_attachment=False,
+                        conditional=True
+                    )
+                except RequestedRangeNotSatisfiable as rr:
+                    # Client requested an invalid range (416) - return proper status
+                    Logger.warning(f"Stream result range not satisfiable for {task_id}: {rr}")
+                    return Response(status=416)
             except Exception as e:
                 Logger.error(f"Stream result error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
@@ -602,6 +612,41 @@ class WebServer:
             Logger.info(f"[Task {task_id}] Initializing pipeline with config: {self.config_path}")
             # Do not open video during pipeline init; set later after validating path
             pipeline = LaneViolationPipeline(self.config_path, input_source=None, output_path=None, task_id=task_id)
+            # Apply per-task options if present (e.g., model, confidence, frame_skip, draw flags)
+            try:
+                task_options = getattr(task, 'options', {}) or {}
+                if task_options:
+                    Logger.info(f"[Task {task_id}] Applying task options: {task_options}")
+                    # Model selection
+                    model_name = task_options.get('model')
+                    if model_name:
+                        pipeline.vehicle_detector.model_name = model_name
+                        try:
+                            pipeline.vehicle_detector.load_model()
+                            Logger.info(f"[Task {task_id}] Vehicle detector loaded model: {model_name}")
+                        except Exception as e:
+                            Logger.warning(f"[Task {task_id}] Failed to load specified model '{model_name}': {e}")
+                    # Confidence threshold
+                    if 'confidence' in task_options:
+                        try:
+                            pipeline.vehicle_detector.confidence_threshold = float(task_options.get('confidence', pipeline.vehicle_detector.confidence_threshold))
+                        except Exception:
+                            pass
+                    # Frame skip
+                    if 'frame_skip' in task_options:
+                        try:
+                            fs = int(task_options.get('frame_skip', pipeline.frame_skip))
+                            pipeline.frame_skip = max(1, fs)
+                            Logger.info(f"[Task {task_id}] Frame skip set to: {pipeline.frame_skip}")
+                        except Exception:
+                            pass
+                    # Draw flags
+                    if 'drawConfidence' in task_options:
+                        pipeline.draw_confidence = bool(task_options.get('drawConfidence'))
+                    if 'drawTrajectories' in task_options:
+                        pipeline.draw_trajectories = bool(task_options.get('drawTrajectories'))
+            except Exception as e:
+                Logger.warning(f"[Task {task_id}] Error applying task options: {e}")
             Logger.info(f"[Task {task_id}] Pipeline initialized with task-specific zones")
 
             # Double-check zones loaded in pipeline; fail early if none present

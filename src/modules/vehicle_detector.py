@@ -42,14 +42,12 @@ class VehicleDetector:
         self.half_precision = half_precision and device == "cuda"  # FP16 only works on CUDA
         
         Logger.info(f"Loading YOLOv8 model: {model_name}")
-        self.model = YOLO(f"{model_name}.pt")
-        
-        # Move model to device
-        self.model.to(device)
-        if self.half_precision:
-            Logger.info("FP16 half precision will be used for faster inference")
-        
-        Logger.info(f"Model loaded successfully on {device} (input_size={input_size})")
+        # Load model (deferred to load_model method for flexibility)
+        self.model = None
+        try:
+            self.load_model()
+        except Exception as e:
+            Logger.error(f"Failed to load model during init: {e}")
     
     def detect(self, image: np.ndarray) -> Dict:
         """
@@ -94,6 +92,20 @@ class VehicleDetector:
             'image_shape': image.shape,
             'num_detections': len(detections)
         }
+
+    def load_model(self):
+        """(Re)load model from current `self.model_name` and move to configured device."""
+        Logger.info(f"Loading YOLOv8 model: {self.model_name}")
+        self.model = YOLO(f"{self.model_name}.pt")
+        # Move model to device
+        try:
+            self.model.to(self.device)
+        except Exception:
+            # Some YOLO wrappers auto-manage device; ignore if not supported
+            pass
+        if self.half_precision:
+            Logger.info("FP16 half precision will be used for faster inference")
+        Logger.info(f"Model loaded successfully on {self.device} (input_size={self.input_size})")
     
     def detect_with_tracking(self, image: np.ndarray) -> Dict:
         """
