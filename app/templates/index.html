@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hệ Thống Phát Hiện Vi Phạm Làn</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-container">
             <div class="navbar-brand">
-                <i class="fas fa-traffic-light"></i>
                 <span>Phát hiện vi phạm làn</span>
             </div>
             <div class="navbar-status">
@@ -28,23 +27,18 @@
         <aside class="sidebar">
             <div class="sidebar-menu">
                 <button class="menu-btn active" data-section="upload">
-                    <i class="fas fa-upload"></i>
                     <span>Tải lên</span>
                 </button>
                 <button class="menu-btn" data-section="processing">
-                    <i class="fas fa-cogs"></i>
                     <span>Xử lý</span>
                 </button>
                 <button class="menu-btn" data-section="results">
-                    <i class="fas fa-chart-bar"></i>
                     <span>Kết quả</span>
                 </button>
-                <button class="menu-btn" data-section="zones">
-                    <i class="fas fa-draw-polygon"></i>
+                <button class="menu-btn" data-section="zones" id="menuZonesBtn" style="display: none;">
                     <span>Vùng</span>
                 </button>
                 <button class="menu-btn" data-section="settings">
-                    <i class="fas fa-sliders-h"></i>
                     <span>Cài đặt</span>
                 </button>
             </div>
@@ -57,8 +51,7 @@
                 <h2>Tải video / hình ảnh</h2>
                 
                 <div class="upload-area" id="uploadArea">
-                    <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Kéo thả tập tin vào đây</p>
+                    <p>Kéo thả tệp vào đây</p>
                     <p class="small-text">hoặc nhấp để chọn</p>
                     <input type="file" id="fileInput" accept="video/mp4,video/avi,image/jpeg,image/png" hidden>
                 </div>
@@ -107,7 +100,7 @@
                     </div>
 
                     <button id="processBtn" class="btn btn-primary" disabled>
-                        <i class="fas fa-play"></i> Bắt đầu xử lý
+                        Bắt đầu xử lý
                     </button>
                 </div>
             </section>
@@ -143,10 +136,10 @@
                 
                 <div class="zones-toolbar">
                     <button id="addZoneBtn" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Thêm vùng
+                        Thêm vùng
                     </button>
                     <button id="clearZonesBtn" class="btn btn-secondary">
-                        <i class="fas fa-trash"></i> Xóa tất cả
+                        Xóa tất cả
                     </button>
                 </div>
 
@@ -166,7 +159,7 @@
                         
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
                             <button id="processZonesBtn" class="btn btn-success btn-block" onclick="app.processWithZones()">
-                                <i class="fas fa-play"></i> Bắt đầu xử lý
+                                Bắt đầu xử lý
                             </button>
                         </div>
                     </div>

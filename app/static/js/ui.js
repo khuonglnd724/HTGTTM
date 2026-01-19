@@ -107,11 +107,11 @@ class UI {
                 </div>
                 <div class="task-actions">
                     <button class="btn btn-secondary small" onclick="app.viewTask('${task.task_id}')">
-                        <i class="fas fa-eye"></i> Xem
+                        Xem
                     </button>
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary small" onclick="app.downloadTask('${task.task_id}')">
-                            <i class="fas fa-download"></i> Tải xuống
+                            Tải xuống
                         </button>
                     ` : ''}
                 </div>
@@ -154,21 +154,21 @@ class UI {
                 </div>
                 ${task.error_message ? `
                     <div class="task-info mt-2 text-small" style="color: var(--danger-color);">
-                        Error: ${task.error_message}
+                        Lỗi: ${task.error_message}
                     </div>
                 ` : ''}
                 <div class="task-actions">
                     <button class="btn btn-secondary small" onclick="app.viewTask('${task.task_id}')">
-                        <i class="fas fa-eye"></i> Details
+                        Chi tiết
                     </button>
                     ${hasVideo ? `
                         <button class="btn btn-primary small" onclick="app.viewResult('${task.task_id}')">
-                            <i class="fas fa-play"></i> Play
+                            Xem
                         </button>
                     ` : ''}
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary small" onclick="app.downloadTask('${task.task_id}')">
-                            <i class="fas fa-download"></i> Download
+                            Tải xuống
                         </button>
                     ` : ''}
                 </div>
@@ -195,7 +195,6 @@ class UI {
         statusDiv.className = `upload-status ${success ? 'success' : 'error'}`;
         statusDiv.innerHTML = `
             <div>
-                <i class="fas fa-${success ? 'check-circle' : 'exclamation-circle'}"></i>
                 <span>${message}</span>
             </div>
         `;
