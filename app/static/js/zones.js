@@ -314,6 +314,9 @@ class ZoneEditor {
         
         if (this.zones.length === 0) {
             container.innerHTML = '<p class="empty-state">Chưa có vùng</p>';
+            // Keep main upload process button enabled (so user can still open zone editor),
+            // but disable zones-panel process button until zones are created
+            UI.setProcessButtons(true, false);
             return;
         }
         
@@ -322,7 +325,7 @@ class ZoneEditor {
             return `
                 <div class="zone-item">
                     <div class="zone-item-header">
-                        <input type="checkbox" class="zone-checkbox" data-zone-id="${zoneId}" 
+                        <input type="checkbox" checked class="zone-checkbox" data-zone-id="${zoneId}" 
                                style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;">
                         <span class="zone-item-name">${zone.name}</span>
                         <div class="zone-item-actions">
@@ -338,6 +341,9 @@ class ZoneEditor {
                 </div>
             `;
         }).join('');
+
+        // Enable both the main and zones-panel process buttons when zones exist
+        UI.setProcessButtons(true, true);
     }
 
     async deleteZone(zoneId) {

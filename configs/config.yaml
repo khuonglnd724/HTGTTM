@@ -3,7 +3,7 @@
 # Cài đặt mô hình YOLO
 yolo:
   model_name: "yolov8m"  # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
-  confidence_threshold: 0.65  # Tăng để cải thiện độ chính xác (cao = ít false positives)
+  confidence_threshold: 0.5  # Tăng để cải thiện độ chính xác (cao = ít false positives)
   iou_threshold: 0.45  # Ngưỡng IoU cho NMS (Non-Max Suppression)
   device: "auto"  # "cuda", "cpu", hoặc "auto" (tự động phát hiện)
   half_precision: true  # Dùng FP16 để tăng tốc trên GPU hỗ trợ
@@ -33,7 +33,7 @@ lanes:
 processing:
   input_source: "data/videos/sample.mp4"  # File video, webcam (0) hoặc stream RTSP
   output_path: "data/outputs/result.mp4"  # File đầu ra lưu kết quả xử lý
-  frame_skip: 2  # Xử lý mỗi n-th frame (2 = bỏ 1, xử lý 1)
+  frame_skip: 1  # Xử lý mỗi n-th frame (2 = bỏ 1, xử lý 1)
   draw_trajectories: true  # Bật/tắt vẽ quỹ đạo các track trên video kết quả
   draw_confidence: true  # Hiển thị giá trị confidence trên bounding box
   max_resolution: 1920  # Giảm độ phân giải nếu video lớn hơn giá trị này

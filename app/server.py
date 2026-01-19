@@ -217,15 +217,38 @@ class WebServer:
                 # Task must already exist from upload
                 if task_id not in self.tasks:
                     return jsonify({'error': f'Task {task_id} not found'}), 404
-                
+
                 task = self.tasks[task_id]
-                
+
+                # Validate that task-specific zones exist and are non-empty
+                task_zones_path = Path('data/tasks') / task_id / 'zones.json'
+                if not task_zones_path.exists():
+                    return jsonify({'error': 'No zones defined for this task. Create at least one zone before processing.'}), 400
+
+                try:
+                    with open(task_zones_path, 'r', encoding='utf-8') as f:
+                        zones_payload = json.load(f)
+                    zones_list = zones_payload.get('zones', []) if isinstance(zones_payload, dict) else []
+                except Exception as e:
+                    Logger.error(f"Error reading zones for {task_id}: {e}")
+                    return jsonify({'error': 'Failed to read zones for task; cannot start processing.'}), 500
+
+                if not zones_list:
+                    return jsonify({'error': 'Zone list is empty. Create at least one zone before processing.'}), 400
+
                 # Store selected zone IDs in task for zone-filtered processing
                 if selected_zone_ids and isinstance(selected_zone_ids, list):
+                    # Validate selected ids exist in zone list
+                    available_ids = {z.get('zone_id') for z in zones_list}
+                    invalid = [z for z in selected_zone_ids if z not in available_ids]
+                    if invalid:
+                        return jsonify({'error': f'Selected zone ids not found: {invalid}'}), 400
                     task.selected_zone_ids = selected_zone_ids
                     Logger.info(f"[{task_id}] Selected zones for processing: {selected_zone_ids}")
                 else:
-                    Logger.warning(f"[{task_id}] No zones selected for processing")
+                    # Default to all zones if not explicitly provided
+                    task.selected_zone_ids = [z.get('zone_id') for z in zones_list]
+                    Logger.info(f"[{task_id}] No zones explicitly selected; defaulting to all zones: {task.selected_zone_ids}")
                 
                 # Start processing in background
                 thread = threading.Thread(
@@ -253,6 +276,8 @@ class WebServer:
             try:
                 source = request.args.get('source', '0')
                 model = request.args.get('model', 'yolov8m')
+                use_global_zones = request.args.get('use_global_zones', '0') == '1'
+                zones_param = request.args.get('zones')  # comma-separated zone ids when streaming
                 
                 # Convert source (0 for webcam, or RTSP URL)
                 if source == '0':
@@ -274,9 +299,34 @@ class WebServer:
                 
                 def generate():
                     """Generate video frames"""
+                    # Initialize pipeline; when streaming we may optionally use global zones
                     pipeline = LaneViolationPipeline(self.config_path)
                     pipeline.vehicle_detector.model_name = model
                     pipeline.vehicle_detector.load_model()
+
+                    # Enforce zones when required: either use global zones or provided zone ids
+                    if pipeline.require_zones:
+                        if use_global_zones:
+                            if not pipeline.zone_manager or len(pipeline.zone_manager.zones) == 0:
+                                Logger.error("Streaming rejected: global zones not configured")
+                                return
+                            # Use all global zones by default
+                            pipeline.selected_zone_ids = [z.zone_id for z in pipeline.zone_manager.zones]
+                        else:
+                            # zones_param must be provided
+                            if not zones_param:
+                                Logger.error("Streaming rejected: must provide 'zones' param or set use_global_zones=1")
+                                return
+                            requested = [z.strip() for z in zones_param.split(',') if z.strip()]
+                            if not pipeline.zone_manager or len(pipeline.zone_manager.zones) == 0:
+                                Logger.error("Streaming rejected: no global zones available to validate requested zones")
+                                return
+                            available = {z.zone_id for z in pipeline.zone_manager.zones}
+                            invalid = [z for z in requested if z not in available]
+                            if invalid:
+                                Logger.error(f"Streaming rejected: requested zones not found: {invalid}")
+                                return
+                            pipeline.selected_zone_ids = requested
                     
                     video = cv2.VideoCapture(source)
                     if not video.isOpened():
@@ -553,6 +603,13 @@ class WebServer:
             # Do not open video during pipeline init; set later after validating path
             pipeline = LaneViolationPipeline(self.config_path, input_source=None, output_path=None, task_id=task_id)
             Logger.info(f"[Task {task_id}] Pipeline initialized with task-specific zones")
+
+            # Double-check zones loaded in pipeline; fail early if none present
+            try:
+                if not pipeline.zone_manager or len(pipeline.zone_manager.zones) == 0:
+                    raise RuntimeError('No zones configured for this task. Create at least one zone before processing.')
+            except Exception as e:
+                raise RuntimeError(f"Zone validation failed: {e}")
             
             # Set input/output - resolve to absolute paths
             input_path = task.input_path

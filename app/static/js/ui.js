@@ -231,14 +231,27 @@ class UI {
     }
 
     static setProcessButtonState(enabled) {
-        const btn = document.getElementById('processBtn');
-        if (enabled) {
-            btn.disabled = false;
-            btn.classList.remove('disabled');
-        } else {
-            btn.disabled = true;
-            btn.classList.add('disabled');
-        }
+        // Backwards-compatible: enable/disable both buttons
+        UI.setProcessButtons(enabled, enabled);
+    }
+
+    static setProcessButtons(mainEnabled = false, zonesEnabled = false) {
+        const btnMain = document.getElementById('processBtn');
+        const btnZones = document.getElementById('processZonesBtn');
+
+        const apply = (el, enabled) => {
+            if (!el) return;
+            if (enabled) {
+                el.disabled = false;
+                el.classList.remove('disabled');
+            } else {
+                el.disabled = true;
+                el.classList.add('disabled');
+            }
+        };
+
+        apply(btnMain, mainEnabled);
+        apply(btnZones, zonesEnabled);
     }
 
     static getTaskDetailsHTML(task) {

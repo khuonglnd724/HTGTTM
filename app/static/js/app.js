@@ -52,9 +52,24 @@ class App {
             UI.updateConfidenceSlider(e.target.value);
         });
 
-        // Process button
-        document.getElementById('processBtn').addEventListener('click', () => {
-            this.startProcessing();
+        // Process button: navigate to zones UI or start upload+zones when file present
+        const processBtn = document.getElementById('processBtn');
+        if (processBtn) processBtn.addEventListener('click', () => {
+            if (this.uploadedFile) {
+                // If a file is selected, upload it (creates task) then switch to zones
+                this.startProcessing();
+            } else {
+                // No file yet: just open zones editor (task may be null)
+                UI.showSection('zones');
+                try {
+                    const currentTaskId = (window.AppState && window.AppState.currentTaskId) ? window.AppState.currentTaskId : null;
+                    if (!window.zoneEditor || window.zoneEditor.taskId !== currentTaskId) {
+                        window.zoneEditor = new ZoneEditor(currentTaskId);
+                    }
+                } catch (e) {
+                    console.error('Failed to initialize ZoneEditor:', e);
+                }
+            }
         });
 
         // Settings
@@ -89,7 +104,8 @@ class App {
         }
 
         this.uploadedFile = file;
-        UI.setProcessButtonState(true);
+        // Enable the upload-page process button so user can navigate to zone editor
+        UI.setProcessButtons(true, false);
 
         // Show file info
         const fileName = file.name;
@@ -104,7 +120,7 @@ class App {
         }
 
         try {
-            UI.setProcessButtonState(false);
+            UI.setProcessButtons(false, false);
             UI.showToast('Đang tải tập tin...', 'info');
 
             // Upload file
@@ -152,9 +168,11 @@ class App {
                     img.src = uploadResponse.preview_url;
                 }
             }
+            // Ensure zones-panel process button remains disabled until zones created
+            UI.setProcessButtons(true, false);
         } catch (error) {
             UI.showToast('Lỗi tải lên: ' + error.message, 'error');
-            UI.setProcessButtonState(true);
+            UI.setProcessButtons(true, false);
         }
     }
 
@@ -174,7 +192,7 @@ class App {
         const selectedZoneIds = Array.from(checkboxes).map(cb => cb.dataset.zoneId);
 
         try {
-            UI.setProcessButtonState(false);
+            UI.setProcessButtons(false, false);
             UI.showToast(`Bắt đầu xử lý cho ${selectedZoneIds.length} vùng...`, 'info');
 
             // Start processing with the current task ID and selected zones
@@ -196,7 +214,7 @@ class App {
 
         } catch (error) {
             UI.showToast('Lỗi: ' + error.message, 'error');
-            UI.setProcessButtonState(true);
+            UI.setProcessButtons(true, true);
         }
     }
 

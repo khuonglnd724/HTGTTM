@@ -79,6 +79,10 @@ class LaneViolationPipeline:
         self.prev_boundaries = None
         self.boundary_alpha = float(self.config.get('processing.boundary_alpha', 0.6))
 
+        # Workflow flags
+        # Require at least one zone to be defined before vehicle tracking/violation processing
+        # This disables automatic lane detection as the primary method.
+        self.require_zones = True
         # Zone presence tracking: keep recent track_ids that were in-zone
         self.zone_presence = {}  # track_id -> last_frame_seen_in_zone
         self.zone_grace_frames = int(self.config.get('tracking.zone_grace_frames', 3))
@@ -107,39 +111,60 @@ class LaneViolationPipeline:
         if frame_num % self.frame_skip != 0:
             return results
         
-        # Detect lanes
-        lane_result = self.lane_detector.detect_lanes(frame)
-        lane_boundaries = self.lane_detector.get_lane_boundaries(frame)
+        # Enforce zone-first workflow
+        # If zones are required, skip automatic lane detection and require zones to be present
+        if self.require_zones:
+            if not self.zone_manager or len(self.zone_manager.zones) == 0:
+                Logger.warning("No zones configured. Create zones before running pipeline. Skipping frame processing.")
+                return results
 
-        # Temporal smoothing of lane boundaries to reduce jitter (simple EMA)
-        current_bounds = lane_boundaries.get('boundaries', [])
-        if self.prev_boundaries is None or len(self.prev_boundaries) != len(current_bounds):
-            # Initialize previous boundaries
-            # Make a deep copy of current bounds
-            self.prev_boundaries = [dict(b) for b in current_bounds]
+            # If user didn't specify selected zones, default to all configured zones
+            if not self.selected_zone_ids:
+                self.selected_zone_ids = [z.zone_id for z in self.zone_manager.zones]
+                Logger.debug(f"No selected zones specified; defaulting to all zones: {self.selected_zone_ids}")
+
+            # Do not run automatic lane detection when zones are used
+            lane_boundaries = {
+                'boundaries': [],
+                'num_lanes': 0,
+                'image_width': frame.shape[1],
+                'image_height': frame.shape[0]
+            }
+            results['lane_boundaries'] = lane_boundaries
         else:
-            # Smooth each boundary element
-            alpha = self.boundary_alpha
-            for i in range(len(current_bounds)):
-                curr = current_bounds[i]
-                prev = self.prev_boundaries[i]
-                # Smooth numeric fields if present
-                try:
-                    prev_left = float(prev.get('left', 0))
-                    prev_right = float(prev.get('right', 0))
-                    curr_left = float(curr.get('left', prev_left))
-                    curr_right = float(curr.get('right', prev_right))
-                    prev['left'] = int(round(alpha * curr_left + (1 - alpha) * prev_left))
-                    prev['right'] = int(round(alpha * curr_right + (1 - alpha) * prev_right))
-                    # Update center and width
-                    prev['center'] = (prev['left'] + prev['right']) / 2
-                    prev['width'] = prev['right'] - prev['left']
-                except Exception:
-                    # If smoothing fails, fallback to current
-                    self.prev_boundaries[i] = dict(curr)
+            # Fallback to original lane detection flow when zones are not enforced
+            lane_result = self.lane_detector.detect_lanes(frame)
+            lane_boundaries = self.lane_detector.get_lane_boundaries(frame)
 
-        lane_boundaries['boundaries'] = self.prev_boundaries
-        results['lane_boundaries'] = lane_boundaries
+            # Temporal smoothing of lane boundaries to reduce jitter (simple EMA)
+            current_bounds = lane_boundaries.get('boundaries', [])
+            if self.prev_boundaries is None or len(self.prev_boundaries) != len(current_bounds):
+                # Initialize previous boundaries
+                # Make a deep copy of current bounds
+                self.prev_boundaries = [dict(b) for b in current_bounds]
+            else:
+                # Smooth each boundary element
+                alpha = self.boundary_alpha
+                for i in range(len(current_bounds)):
+                    curr = current_bounds[i]
+                    prev = self.prev_boundaries[i]
+                    # Smooth numeric fields if present
+                    try:
+                        prev_left = float(prev.get('left', 0))
+                        prev_right = float(prev.get('right', 0))
+                        curr_left = float(curr.get('left', prev_left))
+                        curr_right = float(curr.get('right', prev_right))
+                        prev['left'] = int(round(alpha * curr_left + (1 - alpha) * prev_left))
+                        prev['right'] = int(round(alpha * curr_right + (1 - alpha) * prev_right))
+                        # Update center and width
+                        prev['center'] = (prev['left'] + prev['right']) / 2
+                        prev['width'] = prev['right'] - prev['left']
+                    except Exception:
+                        # If smoothing fails, fallback to current
+                        self.prev_boundaries[i] = dict(curr)
+
+            lane_boundaries['boundaries'] = self.prev_boundaries
+            results['lane_boundaries'] = lane_boundaries
         
         # Detect vehicles with tracking
         detection_result = self.vehicle_detector.detect_with_tracking(frame)
