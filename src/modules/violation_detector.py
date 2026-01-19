@@ -99,7 +99,8 @@ class ViolationDetector:
     def detect_violation(self, vehicle_box: Tuple, track_id: int,
                         lane_boundaries: Dict, zone_manager=None, 
                         vehicle_class: str = None,
-                        selected_zone_ids: List[str] = None) -> Dict:
+                        selected_zone_ids: List[str] = None,
+                        frame_num: int = None) -> Dict:
         """
         Detect if vehicle is violating lane rules or zone restrictions
         
@@ -137,19 +138,20 @@ class ViolationDetector:
         # Combined violation status
         is_violating = is_lane_violating or is_zone_violating
         
-        # Update violation history
+        # Update violation history (track_id may be -1 for untracked detections)
         if track_id not in self.violation_history:
             self.violation_history[track_id] = {
                 'consecutive_violations': 0,
                 'total_violations': 0,
                 'first_violation_frame': None
             }
-        
+
         if is_violating:
             self.violation_history[track_id]['consecutive_violations'] += 1
             self.violation_history[track_id]['total_violations'] += 1
+            # Record the first frame where a violation was observed (for snapshot)
             if self.violation_history[track_id]['first_violation_frame'] is None:
-                self.violation_history[track_id]['first_violation_frame'] = 0
+                self.violation_history[track_id]['first_violation_frame'] = frame_num
         else:
             self.violation_history[track_id]['consecutive_violations'] = 0
         
@@ -166,7 +168,8 @@ class ViolationDetector:
     
     def batch_detect_violations(self, detections: List[Dict],
                                lane_boundaries: Dict, zone_manager=None,
-                               selected_zone_ids: List[str] = None) -> List[Dict]:
+                               selected_zone_ids: List[str] = None,
+                               frame_num: int = None) -> List[Dict]:
         """
         Detect violations for multiple vehicles
         
@@ -188,7 +191,8 @@ class ViolationDetector:
             
             violation_info = self.detect_violation(
                 vehicle_box, track_id, lane_boundaries, 
-                zone_manager, vehicle_class, selected_zone_ids
+                zone_manager, vehicle_class, selected_zone_ids,
+                frame_num=frame_num
             )
             violation_info['detection'] = detection
             violations.append(violation_info)

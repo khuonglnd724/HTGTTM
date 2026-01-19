@@ -29,19 +29,24 @@ class VehicleDetector:
         self.confidence_threshold = confidence_threshold
         self.input_size = input_size
         
-        # Auto-detect CUDA availability
+        # Auto-detect CUDA availability and support device spec like 'cuda', 'cuda:0', 'cpu', or 'auto'
         cuda_available = torch.cuda.is_available()
         if device == "auto":
             device = "cuda" if cuda_available else "cpu"
             Logger.info(f"Auto-detected device: {device}")
-        elif device == "cuda" and not cuda_available:
-            Logger.warning("CUDA not available, falling back to CPU")
-            device = "cpu"
-        
+
+        # Normalize device string
+        device = str(device).lower()
+        if device.startswith('cuda') and not cuda_available:
+            Logger.warning("Requested CUDA device but CUDA not available, falling back to CPU")
+            device = 'cpu'
+
+        # Accept forms: 'cuda', 'cuda:0', 'cpu'
         self.device = device
-        self.half_precision = half_precision and device == "cuda"  # FP16 only works on CUDA
+        # half precision only when using CUDA (any cuda device string)
+        self.half_precision = bool(half_precision) and self.device.startswith('cuda')
         
-        Logger.info(f"Loading YOLOv8 model: {model_name}")
+        Logger.info(f"Loading YOLOv8 model: {model_name} on device={self.device}")
         # Load model (deferred to load_model method for flexibility)
         self.model = None
         try:
@@ -96,15 +101,21 @@ class VehicleDetector:
     def load_model(self):
         """(Re)load model from current `self.model_name` and move to configured device."""
         Logger.info(f"Loading YOLOv8 model: {self.model_name}")
-        self.model = YOLO(f"{self.model_name}.pt")
-        # Move model to device
+        # Some ultralytics wrappers accept device in the constructor; try to pass it
         try:
-            self.model.to(self.device)
-        except Exception:
-            # Some YOLO wrappers auto-manage device; ignore if not supported
-            pass
+            self.model = YOLO(f"{self.model_name}.pt")
+            # Move model to device if supported
+            try:
+                self.model.to(self.device)
+            except Exception:
+                # Some YOLO wrappers auto-manage device; ignore if not supported
+                pass
+        except Exception as e:
+            Logger.error(f"Error initializing YOLO model: {e}")
+            raise
+
         if self.half_precision:
-            Logger.info("FP16 half precision will be used for faster inference")
+            Logger.info("FP16 half precision enabled for CUDA device")
         Logger.info(f"Model loaded successfully on {self.device} (input_size={self.input_size})")
     
     def detect_with_tracking(self, image: np.ndarray) -> Dict:

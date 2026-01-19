@@ -338,6 +338,23 @@ class UI {
             `;
         }
 
+        // Show saved violation snapshots if available
+        if (task.result && task.result.snapshots && task.result.snapshots.length > 0) {
+            html += `
+                <h4>Ảnh vi phạm (mỗi phương tiện 1 ảnh)</h4>
+                <div class="snapshot-gallery" style="display:flex;flex-wrap:wrap;gap:8px;">
+                    ${task.result.snapshots.map(s => `
+                        <div style="width:120px;">
+                            <a href="${s.snapshot_url}" target="_blank">
+                                <img src="${s.snapshot_url}" style="width:120px;height:80px;object-fit:cover;border:1px solid #ccc;border-radius:4px;"/>
+                            </a>
+                            <div style="font-size:12px;margin-top:4px;">ID:${s.track_id}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
         return html;
     }
 }

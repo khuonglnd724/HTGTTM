@@ -410,6 +410,20 @@ class WebServer:
             except Exception as e:
                 Logger.error(f"Get tasks error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/violation-snapshot/<task_subdir>/<filename>', methods=['GET'])
+        def get_violation_snapshot(task_subdir, filename):
+            """Serve saved violation snapshot images"""
+            try:
+                snapshot_path = Path.cwd() / 'data' / 'outputs' / 'violations' / task_subdir / filename
+                Logger.info(f"Serving violation snapshot: {snapshot_path}")
+                if not snapshot_path.exists():
+                    return jsonify({'error': 'Snapshot not found'}), 404
+
+                return send_file(str(snapshot_path), mimetype='image/jpeg', as_attachment=False)
+            except Exception as e:
+                Logger.error(f"Snapshot serve error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
         
         @self.app.route('/api/download/<task_id>', methods=['GET'])
         def download_result(task_id):
@@ -809,11 +823,38 @@ class WebServer:
                 actual_output = str(img_out)
             else:
                 actual_output = pipeline.video_processor.output_path or output_path
+
+            # Collect saved violation snapshots from pipeline (if any)
+            snapshots_list = []
+            try:
+                saved = getattr(pipeline, 'saved_violation_snapshots', {}) or {}
+                for tid, url in saved.items():
+                    # Try to get first violation frame from detector history
+                    try:
+                        first_frame = pipeline.violation_detector.violation_history.get(int(tid), {}).get('first_violation_frame')
+                    except Exception:
+                        first_frame = pipeline.violation_detector.violation_history.get(tid, {}).get('first_violation_frame')
+                    snapshots_list.append({
+                        'track_id': tid,
+                        'snapshot_url': url,
+                        'first_violation_frame': first_frame
+                    })
+            except Exception as e:
+                Logger.warning(f"[{task_id}] Failed collecting snapshots: {e}")
+
             task.result = {
                 'output_path': actual_output,
                 'timestamp': datetime.now().isoformat(),
-                'stream_url': f"/api/result/{task_id}/stream"
+                'stream_url': f"/api/result/{task_id}/stream",
+                'snapshots': snapshots_list
             }
+
+            # Include snapshots in analytics report for frontend convenience
+            try:
+                if isinstance(task.analytics, dict):
+                    task.analytics['snapshots'] = snapshots_list
+            except Exception:
+                pass
             task.status = 'completed'
             
             Logger.info(f"Task completed: {task_id}")

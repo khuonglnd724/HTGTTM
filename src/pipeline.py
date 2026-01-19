@@ -73,11 +73,17 @@ class LaneViolationPipeline:
         self.draw_trajectories = self.config.get('processing.draw_trajectories', True)
         self.draw_confidence = self.config.get('processing.draw_confidence', True)
         
+        # Base consecutive frames required to confirm violation at frame_skip=1
+        self.confirmation_base = int(self.config.get('processing.confirmation_base', 3))
+
         self.violation_count = 0
         self.violation_history = {}
         # Temporal smoothing for lane boundaries to reduce jitter
         self.prev_boundaries = None
         self.boundary_alpha = float(self.config.get('processing.boundary_alpha', 0.6))
+
+        # Store saved violation snapshots: track_id -> relative URL
+        self.saved_violation_snapshots = {}
 
         # Workflow flags
         # Require at least one zone to be defined before vehicle tracking/violation processing
@@ -211,15 +217,56 @@ class LaneViolationPipeline:
         if detections:
             violations = self.violation_detector.batch_detect_violations(
                 detections, lane_boundaries, self.zone_manager,
-                selected_zone_ids=self.selected_zone_ids
+                selected_zone_ids=self.selected_zone_ids,
+                frame_num=frame_num
             )
             results['violations'] = violations
-            
-            # Count violations (only if confirmed by consecutive frames)
+
+            # Determine dynamic confirmation threshold based on frame_skip
+            if self.frame_skip <= 2:
+                confirm_required = self.confirmation_base
+            elif self.frame_skip <= 5:
+                confirm_required = max(1, self.confirmation_base - 1)
+            else:
+                confirm_required = 1
+
+            Logger.debug(f"Frame {frame_num}: confirmation threshold={confirm_required} (frame_skip={self.frame_skip})")
+
+            # Iterate violations and handle confirmed cases
             for violation in violations:
-                if violation['is_violating'] and violation.get('consecutive_violations', 0) >= 3:
-                    self.violation_count += 1
-        
+                try:
+                    is_violating = violation.get('is_violating', False)
+                    consecutive = int(violation.get('consecutive_violations', 0))
+                    track_id = int(violation.get('track_id', -1)) if violation.get('track_id') is not None else -1
+
+                    # Only count and snapshot when confirmed by consecutive frames
+                    if is_violating and consecutive >= confirm_required:
+                        self.violation_count += 1
+
+                        # Save one annotated full-frame snapshot per track_id
+                        if track_id not in self.saved_violation_snapshots:
+                            try:
+                                out_base = Path.cwd() / 'data' / 'outputs' / 'violations'
+                                subdir = self.task_id if self.task_id else 'default'
+                                save_dir = out_base / subdir
+                                save_dir.mkdir(parents=True, exist_ok=True)
+
+                                # Create annotated full-frame for snapshot
+                                annotated = self.draw_results(frame, results)
+                                filename = f"violation_full_track{track_id}_frame{frame_num}.jpg"
+                                out_path = save_dir / filename
+                                cv2.imwrite(str(out_path), annotated)
+
+                                rel_url = f"/api/violation-snapshot/{subdir}/{filename}"
+                                violation['snapshot'] = rel_url
+                                self.saved_violation_snapshots[track_id] = rel_url
+                                Logger.info(f"Saved violation snapshot: {out_path}")
+                            except Exception as e:
+                                Logger.error(f"Failed saving violation snapshot for track {track_id}: {e}")
+                except Exception:
+                    # Ensure violations processing does not abort pipeline
+                    Logger.debug("Error processing a violation entry; continuing")
+
         return results
     
     def draw_results(self, frame: np.ndarray, results: Dict) -> np.ndarray:
@@ -304,15 +351,23 @@ class LaneViolationPipeline:
                 
                 DrawingUtils.draw_box(frame_copy, box, color=color, 
                                     label=label, 
-                                    confidence=confidence if self.draw_confidence else None)
+                                    confidence=confidence if self.draw_confidence else None,
+                                    text_color='black')
                 
                 # Draw center point in green
                 cx, cy = detection['center']
                 cv2.circle(frame_copy, (int(cx), int(cy)), 3, (0, 255, 0), -1)
         
         # Draw statistics
-        # Count only confirmed violations (3+ consecutive frames)
-        confirmed_violations = [v for v in violations if v['is_violating'] and v.get('consecutive_violations', 0) >= 3]
+        # Count only confirmed violations according to dynamic threshold
+        if self.frame_skip <= 2:
+            stats_confirm_required = self.confirmation_base
+        elif self.frame_skip <= 5:
+            stats_confirm_required = max(1, self.confirmation_base - 1)
+        else:
+            stats_confirm_required = 1
+
+        confirmed_violations = [v for v in violations if v['is_violating'] and v.get('consecutive_violations', 0) >= stats_confirm_required]
         stats_text = [
             f"Frame: {results['frame_num']}",
             f"Detections: {len(results['detections'])}",

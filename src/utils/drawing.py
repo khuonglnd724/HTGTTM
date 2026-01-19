@@ -23,7 +23,8 @@ class DrawingUtils:
     
     @staticmethod
     def draw_box(image: np.ndarray, box: Tuple, color: str = 'green', 
-                 thickness: int = 2, label: str = None, confidence: float = None) -> np.ndarray:
+                 thickness: int = 2, label: str = None, confidence: float = None,
+                 text_color: str = 'white') -> np.ndarray:
         """
         Draw bounding box on image
         
@@ -64,9 +65,10 @@ class DrawingUtils:
                         (text_x + text_size[0] + 2, text_y + 5),
                         color_bgr, -1)
             
-            # Draw text
+            # Draw text with configurable text color
+            text_bgr = DrawingUtils.COLORS.get(text_color, DrawingUtils.COLORS['white'])
             cv2.putText(image, text, (text_x, text_y), font, 
-                       font_scale, (255, 255, 255), font_thickness)
+                       font_scale, text_bgr, font_thickness)
         
         return image
     
