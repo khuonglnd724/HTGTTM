@@ -64,10 +64,10 @@ class UI {
 
         if (online) {
             indicator.classList.remove('offline');
-            statusText.textContent = 'Online';
+            statusText.textContent = 'Trực tuyến';
         } else {
             indicator.classList.add('offline');
-            statusText.textContent = 'Offline';
+            statusText.textContent = 'Không kết nối';
         }
     }
 
@@ -83,7 +83,7 @@ class UI {
 
         return `
             <div class="task-card">
-                <div class="task-header">
+                        <div class="task-header">
                     <div class="task-title">${task.task_id}</div>
                     <div class="task-status ${statusColor[task.status]}">${task.status.toUpperCase()}</div>
                 </div>
@@ -97,21 +97,21 @@ class UI {
                 ` : ''}
                 <div class="task-info">
                     <div class="task-info-item">
-                        <span class="task-info-label">Type:</span>
+                        <span class="task-info-label">Loại:</span>
                         <span>${task.type}</span>
                     </div>
                     <div class="task-info-item">
-                        <span class="task-info-label">Status:</span>
+                        <span class="task-info-label">Trạng thái:</span>
                         <span>${task.status}</span>
                     </div>
                 </div>
                 <div class="task-actions">
                     <button class="btn btn-secondary small" onclick="app.viewTask('${task.task_id}')">
-                        <i class="fas fa-eye"></i> View
+                        <i class="fas fa-eye"></i> Xem
                     </button>
                     ${task.status === 'completed' ? `
                         <button class="btn btn-primary small" onclick="app.downloadTask('${task.task_id}')">
-                            <i class="fas fa-download"></i> Download
+                            <i class="fas fa-download"></i> Tải xuống
                         </button>
                     ` : ''}
                 </div>
@@ -136,7 +136,7 @@ class UI {
                 </div>
                 <div class="task-info">
                     <div class="task-info-item">
-                        <span class="task-info-label">Duration:</span>
+                        <span class="task-info-label">Thời lượng:</span>
                         <span>${analytics.duration_seconds ? analytics.duration_seconds.toFixed(2) + 's' : 'N/A'}</span>
                     </div>
                     <div class="task-info-item">
@@ -144,11 +144,11 @@ class UI {
                         <span>${analytics.fps ? analytics.fps.toFixed(2) : 'N/A'}</span>
                     </div>
                     <div class="task-info-item">
-                        <span class="task-info-label">Frames:</span>
+                        <span class="task-info-label">Khung:</span>
                         <span>${analytics.frames_processed || 0}</span>
                     </div>
                     <div class="task-info-item">
-                        <span class="task-info-label">Violations:</span>
+                        <span class="task-info-label">Vi phạm:</span>
                         <span>${analytics.total_violations || 0}</span>
                     </div>
                 </div>
@@ -245,7 +245,7 @@ class UI {
         const analytics = task.analytics || {};
         
         let html = `
-            <h4>Task Information</h4>
+            <h4>Thông tin tác vụ</h4>
             <table style="width: 100%; margin-bottom: 1rem;">
                 <tr>
                     <td style="padding: 0.5rem; font-weight: bold;">Task ID:</td>
@@ -272,7 +272,7 @@ class UI {
 
         if (analytics.frames_processed) {
             html += `
-                <h4>Processing Statistics</h4>
+                <h4>Thống kê xử lý</h4>
                 <table style="width: 100%; margin-bottom: 1rem;">
                     <tr>
                         <td style="padding: 0.5rem; font-weight: bold;">Frames Processed:</td>
@@ -308,14 +308,14 @@ class UI {
 
         if (task.error_message) {
             html += `
-                <h4 style="color: var(--danger-color);">Error</h4>
+                <h4 style="color: var(--danger-color);">Lỗi</h4>
                 <p>${task.error_message}</p>
             `;
         }
 
         if (task.result && task.result.stream_url) {
             html += `
-                <h4>Result Video</h4>
+                <h4>Video kết quả</h4>
                 <video style="width: 100%; max-height: 360px;" controls src="${task.result.stream_url}"></video>
             `;
         }

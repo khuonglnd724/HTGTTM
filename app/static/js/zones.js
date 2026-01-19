@@ -88,7 +88,7 @@ class ZoneEditor {
     startDrawing() {
         this.isDrawing = true;
         this.currentPolygon = [];
-        UI.showToast('Click to add points. Double-click to finish.', 'info');
+        UI.showToast('Nhấp để thêm điểm. Nhấp đúp để hoàn tất.', 'info');
     }
 
     handleCanvasClick(e) {
@@ -110,7 +110,7 @@ class ZoneEditor {
 
     handleCanvasDoubleClick(e) {
         if (!this.isDrawing || this.currentPolygon.length < 3) {
-            UI.showToast('Need at least 3 points', 'warning');
+            UI.showToast('Cần ít nhất 3 điểm', 'warning');
             return;
         }
         
@@ -222,12 +222,12 @@ class ZoneEditor {
         const colorHex = document.getElementById('zoneColor').value;
         
         if (!name) {
-            UI.showToast('Please enter a zone name', 'warning');
+            UI.showToast('Vui lòng nhập tên vùng', 'warning');
             return;
         }
         
         if (allowedClasses.length === 0) {
-            UI.showToast('Please select at least one vehicle type', 'warning');
+            UI.showToast('Vui lòng chọn ít nhất một loại phương tiện', 'warning');
             return;
         }
         
@@ -270,7 +270,7 @@ class ZoneEditor {
             console.log(`Saving zone to: ${endpoint}`);
             const response = await api.post(endpoint, zoneData);
             
-            UI.showToast('Zone saved!', 'success');
+            UI.showToast('Đã lưu vùng!', 'success');
             this.zones.push(zoneData);
             this.currentPolygon = [];
             this.redraw();
@@ -278,7 +278,7 @@ class ZoneEditor {
             this.hideZoneEditor();
         } catch (error) {
             console.error('Error saving zone:', error);
-            UI.showToast('Error: ' + error.message, 'error');
+            UI.showToast('Lỗi: ' + error.message, 'error');
         }
     }
 
@@ -313,7 +313,7 @@ class ZoneEditor {
         if (!container) return;
         
         if (this.zones.length === 0) {
-            container.innerHTML = '<p class="empty-state">No zones defined</p>';
+            container.innerHTML = '<p class="empty-state">Chưa có vùng</p>';
             return;
         }
         
@@ -341,7 +341,7 @@ class ZoneEditor {
     }
 
     async deleteZone(zoneId) {
-        if (!confirm('Delete this zone?')) return;
+        if (!confirm('Xóa vùng này?')) return;
         
         try {
             const endpoint = this.taskId ? `/zones/${this.taskId}/${zoneId}` : `/zones/${zoneId}`;
@@ -349,14 +349,14 @@ class ZoneEditor {
             this.zones = this.zones.filter(z => z.zone_id !== zoneId);
             this.redraw();
             this.renderZonesList();
-            UI.showToast('Zone deleted', 'success');
+            UI.showToast('Đã xóa vùng', 'success');
         } catch (error) {
             UI.showToast('Error: ' + error.message, 'error');
         }
     }
 
     async clearAllZones() {
-        if (!confirm('Clear all zones?')) return;
+        if (!confirm('Xóa tất cả vùng?')) return;
         
         try {
             for (const zone of this.zones) {
@@ -367,7 +367,7 @@ class ZoneEditor {
             this.currentPolygon = [];
             this.redraw();
             this.renderZonesList();
-            UI.showToast('All zones cleared', 'success');
+            UI.showToast('Đã xóa tất cả vùng', 'success');
         } catch (error) {
             UI.showToast('Error: ' + error.message, 'error');
         }

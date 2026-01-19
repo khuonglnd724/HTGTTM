@@ -1,45 +1,45 @@
-# Lane Violation Detection System Configuration
+# Cấu hình hệ thống phát hiện vi phạm làn
 
-# YOLO Model Settings
+# Cài đặt mô hình YOLO
 yolo:
   model_name: "yolov8m"  # yolov8n, yolov8s, yolov8m, yolov8l, yolov8x
-  confidence_threshold: 0.65  # Increased for better accuracy
-  iou_threshold: 0.45
-  device: "auto"  # "cuda", "cpu", or "auto" (auto-detect)
-  half_precision: true  # Use FP16 for faster GPU inference
-  input_size: 640  # YOLO input size (320, 416, 640, 1280) - smaller = faster
+  confidence_threshold: 0.65  # Tăng để cải thiện độ chính xác (cao = ít false positives)
+  iou_threshold: 0.45  # Ngưỡng IoU cho NMS (Non-Max Suppression)
+  device: "auto"  # "cuda", "cpu", hoặc "auto" (tự động phát hiện)
+  half_precision: true  # Dùng FP16 để tăng tốc trên GPU hỗ trợ
+  input_size: 640  # Kích thước đầu vào YOLO (nhỏ hơn = nhanh hơn, ít chi tiết hơn)
 
-# Lane Detection Settings
+# Cài đặt phát hiện làn
 lane_detection:
-  method: "hough"  # "hough" or "polynomial"
-  canny_threshold1: 50
-  canny_threshold2: 150
-  hough_threshold: 50
-  hough_min_line_length: 50
-  hough_max_line_gap: 10
+  method: "hough"  # "hough" hoặc "polynomial"
+  canny_threshold1: 50  # Ngưỡng thấp cho Canny (phát hiện cạnh yếu)
+  canny_threshold2: 150  # Ngưỡng cao cho Canny (phát hiện cạnh mạnh)
+  hough_threshold: 50  # Ngưỡng vote Hough để coi là một đường
+  hough_min_line_length: 50  # Độ dài tối thiểu của đoạn thẳng để chấp nhận
+  hough_max_line_gap: 10  # Khoảng cách tối đa để nối hai đoạn thẳng
 
-# Vehicle Tracking Settings
+# Cài đặt theo dõi phương tiện
 tracking:
-  max_age: 30  # Frames to keep track of lost objects
-  min_hits: 3  # Frames to confirm detection
-  iou_threshold: 0.3
+  max_age: 30  # Số frame giữ track khi mất tạm thời
+  min_hits: 3  # Số frame để xác nhận detection
+  iou_threshold: 0.3  # Ngưỡng IoU dùng để ghép detections với tracks
 
-# Lane Definition Settings
+# Cài đặt định nghĩa làn
 lanes:
-  num_lanes: 3  # Number of lanes in road
-  lane_width_pixels: 100  # Approximate lane width in pixels
-  
-# Processing Settings
-processing:
-  input_source: "data/videos/sample.mp4"  # Video file, webcam (0), or RTSP stream
-  output_path: "data/outputs/result.mp4"
-  frame_skip: 2  # Process every nth frame (2 = skip 1, process 1)
-  draw_trajectories: true
-  draw_confidence: true
-  max_resolution: 1920  # Downscale if larger than this
+  num_lanes: 3  # Số làn trên đường
+  lane_width_pixels: 100  # Độ rộng ước lượng của làn (pixel)
 
-# Alert Settings
+# Cài đặt xử lý
+processing:
+  input_source: "data/videos/sample.mp4"  # File video, webcam (0) hoặc stream RTSP
+  output_path: "data/outputs/result.mp4"  # File đầu ra lưu kết quả xử lý
+  frame_skip: 2  # Xử lý mỗi n-th frame (2 = bỏ 1, xử lý 1)
+  draw_trajectories: true  # Bật/tắt vẽ quỹ đạo các track trên video kết quả
+  draw_confidence: true  # Hiển thị giá trị confidence trên bounding box
+  max_resolution: 1920  # Giảm độ phân giải nếu video lớn hơn giá trị này
+
+# Cài đặt cảnh báo
 alerts:
-  enable_alerts: true
-  alert_type: "box"  # "box", "polygon", or "both"
-  violation_cooldown: 30  # Frames between alerts for same vehicle
+  enable_alerts: true  # Bật/tắt chức năng gửi/hiện cảnh báo vi phạm
+  alert_type: "box"  # "box", "polygon" hoặc "both"
+  violation_cooldown: 0  # Số frame giữa hai cảnh báo cho cùng một xe

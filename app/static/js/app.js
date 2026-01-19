@@ -78,13 +78,13 @@ class App {
         // Validate file type
         const validTypes = ['video/mp4', 'video/avi', 'video/quicktime', 'video/x-matroska', 'image/jpeg', 'image/png'];
         if (!validTypes.some(type => file.type.startsWith(type.split('/')[0]))) {
-            UI.showToast('Invalid file type. Please upload a video or image.', 'error');
+            UI.showToast('Loại tệp không hợp lệ. Vui lòng tải lên video hoặc hình ảnh.', 'error');
             return;
         }
 
         // Validate file size (500MB max)
         if (file.size > 500 * 1024 * 1024) {
-            UI.showToast('File is too large. Maximum size is 500MB.', 'error');
+            UI.showToast('Tệp quá lớn. Kích thước tối đa 500MB.', 'error');
             return;
         }
 
@@ -94,18 +94,18 @@ class App {
         // Show file info
         const fileName = file.name;
         const fileSize = (file.size / 1024 / 1024).toFixed(2) + 'MB';
-        UI.showUploadStatus(`File selected: ${fileName} (${fileSize})`, true);
+            UI.showUploadStatus(`Đã chọn tệp: ${fileName} (${fileSize})`, true);
     }
 
     async startProcessing() {
         if (!this.uploadedFile) {
-            UI.showToast('Please select a file first', 'warning');
+            UI.showToast('Vui lòng chọn tệp trước', 'warning');
             return;
         }
 
         try {
             UI.setProcessButtonState(false);
-            UI.showToast('Uploading file...', 'info');
+            UI.showToast('Đang tải tập tin...', 'info');
 
             // Upload file
             const uploadResponse = await api.uploadFile('/upload', this.uploadedFile);
@@ -122,7 +122,7 @@ class App {
                 uploadedFilePath: this.uploadedFilePath
             };
             
-            UI.showToast('File uploaded. Please define zones before processing...', 'info');
+            UI.showToast('Tập tin đã tải lên. Vui lòng định nghĩa vùng trước khi xử lý...', 'info');
 
             // Switch to zones view for zone definition
             UI.showSection('zones');
@@ -153,21 +153,21 @@ class App {
                 }
             }
         } catch (error) {
-            UI.showToast('Upload error: ' + error.message, 'error');
+            UI.showToast('Lỗi tải lên: ' + error.message, 'error');
             UI.setProcessButtonState(true);
         }
     }
 
     async processWithZones() {
         if (!this.currentTaskId) {
-            UI.showToast('No task selected', 'warning');
+            UI.showToast('Chưa chọn tác vụ', 'warning');
             return;
         }
 
         // Get all checked zones from the zones list
         const checkboxes = document.querySelectorAll('#zonesList .zone-checkbox:checked');
         if (checkboxes.length === 0) {
-            UI.showToast('Please select at least one zone to process', 'warning');
+            UI.showToast('Vui lòng chọn ít nhất một vùng để xử lý', 'warning');
             return;
         }
 
@@ -175,7 +175,7 @@ class App {
 
         try {
             UI.setProcessButtonState(false);
-            UI.showToast(`Starting processing for ${selectedZoneIds.length} zone(s)...`, 'info');
+            UI.showToast(`Bắt đầu xử lý cho ${selectedZoneIds.length} vùng...`, 'info');
 
             // Start processing with the current task ID and selected zones
             const processResponse = await api.post('/process', {
@@ -183,7 +183,7 @@ class App {
                 selected_zone_ids: selectedZoneIds
             });
 
-            UI.showToast('Processing started!', 'success');
+            UI.showToast('Đã bắt đầu xử lý!', 'success');
 
             // Switch to processing view
             UI.showSection('processing');
@@ -195,7 +195,7 @@ class App {
             }, 1000);
 
         } catch (error) {
-            UI.showToast('Error: ' + error.message, 'error');
+            UI.showToast('Lỗi: ' + error.message, 'error');
             UI.setProcessButtonState(true);
         }
     }
@@ -206,7 +206,7 @@ class App {
             const tasksList = document.getElementById('tasksList');
 
             if (!data.tasks || data.tasks.length === 0) {
-                tasksList.innerHTML = '<p class="empty-state">No active tasks</p>';
+                tasksList.innerHTML = '<p class="empty-state">Không có tác vụ đang chạy</p>';
                 return;
             }
 
@@ -237,7 +237,7 @@ class App {
             tasks = tasks.filter(t => t.status === 'completed' || t.status === 'failed');
 
             if (tasks.length === 0) {
-                resultsList.innerHTML = '<p class="empty-state">No results yet</p>';
+                resultsList.innerHTML = '<p class="empty-state">Chưa có kết quả</p>';
                 return;
             }
 
@@ -258,12 +258,12 @@ class App {
             const content = UI.getTaskDetailsHTML(task);
             
             UI.showModal(
-                `Task: ${taskId}`,
+                `Tác vụ: ${taskId}`,
                 content,
                 task.status === 'completed' ? () => this.downloadTask(taskId) : null
             );
         } catch (error) {
-            UI.showToast('Error loading task details', 'error');
+            UI.showToast('Lỗi tải thông tin tác vụ', 'error');
         }
     }
 
@@ -271,25 +271,25 @@ class App {
         try {
             const task = await api.get(`/task/${taskId}`);
             if (!task.result || !task.result.stream_url) {
-                UI.showToast('No result video found', 'warning');
+                UI.showToast('Không tìm thấy video kết quả', 'warning');
                 return;
             }
             const content = `
                 <h4>Result Video</h4>
                 <video style="width: 100%; max-height: 480px;" controls src="${task.result.stream_url}"></video>
             `;
-            UI.showModal(`Task: ${taskId} - Preview`, content, () => this.downloadTask(taskId));
+            UI.showModal(`Tác vụ: ${taskId} - Xem trước`, content, () => this.downloadTask(taskId));
         } catch (error) {
-            UI.showToast('Error loading result', 'error');
+            UI.showToast('Lỗi tải kết quả', 'error');
         }
     }
 
     async downloadTask(taskId) {
         try {
             window.location.href = `/api/download/${taskId}`;
-            UI.showToast('Download started!', 'success');
+            UI.showToast('Bắt đầu tải xuống!', 'success');
         } catch (error) {
-            UI.showToast('Error downloading file', 'error');
+            UI.showToast('Lỗi khi tải xuống', 'error');
         }
     }
 
@@ -297,9 +297,9 @@ class App {
         try {
             const settings = UI.getSettingsData();
             await api.post('/config', settings);
-            UI.showToast('Settings saved successfully!', 'success');
+            UI.showToast('Lưu cài đặt thành công!', 'success');
         } catch (error) {
-            UI.showToast('Error saving settings: ' + error.message, 'error');
+            UI.showToast('Lỗi lưu cài đặt: ' + error.message, 'error');
         }
     }
 

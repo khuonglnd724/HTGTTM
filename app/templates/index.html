@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lane Violation Detection System</title>
+    <title>Hệ Thống Phát Hiện Vi Phạm Làn</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -13,11 +13,11 @@
         <div class="navbar-container">
             <div class="navbar-brand">
                 <i class="fas fa-traffic-light"></i>
-                <span>Lane Violation Detection</span>
+                <span>Phát hiện vi phạm làn</span>
             </div>
             <div class="navbar-status">
                 <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">Connecting...</span>
+                <span id="statusText">Đang kết nối...</span>
             </div>
         </div>
     </nav>
@@ -29,23 +29,23 @@
             <div class="sidebar-menu">
                 <button class="menu-btn active" data-section="upload">
                     <i class="fas fa-upload"></i>
-                    <span>Upload</span>
+                    <span>Tải lên</span>
                 </button>
                 <button class="menu-btn" data-section="processing">
                     <i class="fas fa-cogs"></i>
-                    <span>Processing</span>
+                    <span>Xử lý</span>
                 </button>
                 <button class="menu-btn" data-section="results">
                     <i class="fas fa-chart-bar"></i>
-                    <span>Results</span>
+                    <span>Kết quả</span>
                 </button>
                 <button class="menu-btn" data-section="zones">
                     <i class="fas fa-draw-polygon"></i>
-                    <span>Zones</span>
+                    <span>Vùng</span>
                 </button>
                 <button class="menu-btn" data-section="settings">
                     <i class="fas fa-sliders-h"></i>
-                    <span>Settings</span>
+                    <span>Cài đặt</span>
                 </button>
             </div>
         </aside>
@@ -54,12 +54,12 @@
         <main class="main-content">
             <!-- Upload Section -->
             <section id="upload-section" class="content-section active">
-                <h2>Upload Video/Image</h2>
+                <h2>Tải video / hình ảnh</h2>
                 
                 <div class="upload-area" id="uploadArea">
                     <i class="fas fa-cloud-upload-alt"></i>
-                    <p>Drag and drop your file here</p>
-                    <p class="small-text">or click to select</p>
+                    <p>Kéo thả tập tin vào đây</p>
+                    <p class="small-text">hoặc nhấp để chọn</p>
                     <input type="file" id="fileInput" accept="video/mp4,video/avi,image/jpeg,image/png" hidden>
                 </div>
 
@@ -74,79 +74,79 @@
 
                 <!-- Processing Options -->
                 <div class="options-panel">
-                    <h3>Processing Options</h3>
+                    <h3>Tùy chọn xử lý</h3>
                     
                     <div class="form-group">
-                        <label for="modelSelect">YOLO Model</label>
+                        <label for="modelSelect">Mô hình YOLO</label>
                         <select id="modelSelect">
-                            <option value="yolov8n">YOLOv8 Nano (⚡ Fast)</option>
-                            <option value="yolov8s">YOLOv8 Small (⚡ Fast)</option>
-                            <option value="yolov8m" selected>YOLOv8 Medium (⚖️ Balanced)</option>
-                            <option value="yolov8l">YOLOv8 Large (Accurate)</option>
-                            <option value="yolov8x">YOLOv8 XLarge (Most Accurate)</option>
+                            <option value="yolov8n">YOLOv8 Nano (Nhanh)</option>
+                            <option value="yolov8s">YOLOv8 Small (Nhanh)</option>
+                            <option value="yolov8m" selected>YOLOv8 Medium (Cân bằng)</option>
+                            <option value="yolov8l">YOLOv8 Large (Chính xác)</option>
+                            <option value="yolov8x">YOLOv8 XLarge (Rất chính xác)</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label for="confidenceSlider">Confidence Threshold: <span id="confidenceValue">0.5</span></label>
+                        <label for="confidenceSlider">Ngưỡng độ tin cậy: <span id="confidenceValue">0.5</span></label>
                         <input type="range" id="confidenceSlider" min="0.1" max="1.0" step="0.1" value="0.5">
                     </div>
 
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="drawConfidence" checked>
-                            Draw Confidence Scores
+                            Hiển thị độ tin cậy
                         </label>
                     </div>
 
                     <div class="form-group">
                         <label>
                             <input type="checkbox" id="drawTrajectories" checked>
-                            Draw Vehicle Trajectories
+                            Hiển thị quỹ đạo phương tiện
                         </label>
                     </div>
 
                     <button id="processBtn" class="btn btn-primary" disabled>
-                        <i class="fas fa-play"></i> Start Processing
+                        <i class="fas fa-play"></i> Bắt đầu xử lý
                     </button>
                 </div>
             </section>
 
             <!-- Processing Section -->
             <section id="processing-section" class="content-section">
-                <h2>Active Processing Tasks</h2>
+                <h2>Tác vụ đang chạy</h2>
                 
                 <div id="tasksList" class="tasks-list">
-                    <p class="empty-state">No active tasks</p>
+                    <p class="empty-state">Không có tác vụ đang chạy</p>
                 </div>
             </section>
 
             <!-- Results Section -->
             <section id="results-section" class="content-section">
-                <h2>Processing Results</h2>
+                <h2>Kết quả xử lý</h2>
                 
                 <div class="results-filter">
-                    <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="completed">Completed</button>
-                    <button class="filter-btn" data-filter="failed">Failed</button>
+                    <button class="filter-btn active" data-filter="all">Tất cả</button>
+                    <button class="filter-btn" data-filter="completed">Hoàn thành</button>
+                    <button class="filter-btn" data-filter="failed">Thất bại</button>
                 </div>
 
                 <div id="resultsList" class="results-list">
-                    <p class="empty-state">No results yet</p>
+                    <p class="empty-state">Chưa có kết quả</p>
                 </div>
             </section>
 
             <!-- Zones Section -->
             <section id="zones-section" class="content-section">
-                <h2>Detection Zones</h2>
-                <p class="section-description">Define zones and restrict vehicle types per lane</p>
+                <h2>Vùng phát hiện</h2>
+                <p class="section-description">Định nghĩa vùng và giới hạn loại phương tiện</p>
                 
                 <div class="zones-toolbar">
                     <button id="addZoneBtn" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add Zone
+                        <i class="fas fa-plus"></i> Thêm vùng
                     </button>
                     <button id="clearZonesBtn" class="btn btn-secondary">
-                        <i class="fas fa-trash"></i> Clear All
+                        <i class="fas fa-trash"></i> Xóa tất cả
                     </button>
                 </div>
 
@@ -154,19 +154,19 @@
                     <div class="zones-canvas-wrapper">
                         <canvas id="zonesCanvas" width="1280" height="720"></canvas>
                         <div id="canvasInstructions" class="canvas-instructions">
-                            Click to add points. Double-click to complete polygon.
+                            Nhấp để thêm điểm. Nhấp đúp để hoàn tất đa giác.
                         </div>
                     </div>
 
                     <div class="zones-list-panel">
-                        <h3>Zones List</h3>
+                        <h3>Danh sách vùng</h3>
                         <div id="zonesList" class="zones-list">
-                            <p class="empty-state">No zones defined</p>
+                            <p class="empty-state">Chưa có vùng</p>
                         </div>
                         
                         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
                             <button id="processBtn" class="btn btn-success btn-block" onclick="app.processWithZones()">
-                                <i class="fas fa-play"></i> Start Processing
+                                <i class="fas fa-play"></i> Bắt đầu xử lý
                             </button>
                         </div>
                     </div>
@@ -176,31 +176,31 @@
                 <div id="zoneEditorModal" class="modal hidden">
                     <div class="modal-content">
                         <div class="modal-header">
-                            <h3>Configure Zone</h3>
+                            <h3>Cấu hình vùng</h3>
                             <button class="modal-close">&times;</button>
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label for="zoneName">Zone Name</label>
-                                <input type="text" id="zoneName" placeholder="e.g., Car Lane 1">
+                                <label for="zoneName">Tên vùng</label>
+                                <input type="text" id="zoneName" placeholder="ví dụ: Làn xe ô tô 1">
                             </div>
                             <div class="form-group">
-                                <label>Allowed Vehicle Types</label>
+                                <label>Loại phương tiện cho phép</label>
                                 <div class="checkbox-group">
-                                    <label><input type="checkbox" value="car" class="vehicle-type-check"> Car</label>
-                                    <label><input type="checkbox" value="motorcycle" class="vehicle-type-check"> Motorcycle</label>
-                                    <label><input type="checkbox" value="bus" class="vehicle-type-check"> Bus</label>
-                                    <label><input type="checkbox" value="truck" class="vehicle-type-check"> Truck</label>
+                                    <label><input type="checkbox" value="car" class="vehicle-type-check"> Ô tô</label>
+                                    <label><input type="checkbox" value="motorcycle" class="vehicle-type-check"> Xe máy</label>
+                                    <label><input type="checkbox" value="bus" class="vehicle-type-check"> Xe buýt</label>
+                                    <label><input type="checkbox" value="truck" class="vehicle-type-check"> Xe tải</label>
                                 </div>
                             </div>
                             <div class="form-group">
-                                <label for="zoneColor">Zone Color</label>
+                                <label for="zoneColor">Màu vùng</label>
                                 <input type="color" id="zoneColor" value="#00ff00">
                             </div>
                         </div>
                         <div class="modal-footer">
-                            <button class="btn btn-secondary modal-close">Cancel</button>
-                            <button id="saveZoneBtn" class="btn btn-primary">Save Zone</button>
+                            <button class="btn btn-secondary modal-close">Hủy</button>
+                            <button id="saveZoneBtn" class="btn btn-primary">Lưu vùng</button>
                         </div>
                     </div>
                 </div>
@@ -208,13 +208,13 @@
 
             <!-- Settings Section -->
             <section id="settings-section" class="content-section">
-                <h2>System Settings</h2>
+                <h2>Cài đặt hệ thống</h2>
                 
                 <div class="settings-container">
                     <div class="settings-group">
-                        <h3>Detection Settings</h3>
+                        <h3>Cài đặt phát hiện</h3>
                         <div class="form-group">
-                            <label for="settingsModel">YOLO Model</label>
+                            <label for="settingsModel">Mô hình YOLO</label>
                             <select id="settingsModel">
                                 <option value="yolov8n">YOLOv8 Nano</option>
                                 <option value="yolov8s">YOLOv8 Small</option>
@@ -225,12 +225,12 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="settingsConfidence">Confidence Threshold</label>
+                            <label for="settingsConfidence">Ngưỡng độ tin cậy</label>
                             <input type="number" id="settingsConfidence" min="0.1" max="1.0" step="0.1" value="0.5">
                         </div>
 
                         <div class="form-group">
-                            <label for="settingsDevice">Device</label>
+                            <label for="settingsDevice">Thiết bị</label>
                             <select id="settingsDevice">
                                 <option value="cuda">GPU (CUDA)</option>
                                 <option value="cpu">CPU</option>
@@ -239,7 +239,7 @@
                     </div>
 
                     <div class="settings-group">
-                        <h3>Lane Detection Settings</h3>
+                        <h3>Cài đặt phát hiện làn</h3>
                         <div class="form-group">
                             <label for="settingsCanny1">Canny Threshold Low</label>
                             <input type="number" id="settingsCanny1" value="50">
@@ -257,7 +257,7 @@
                     </div>
 
                     <button id="savSettingsBtn" class="btn btn-primary">
-                        <i class="fas fa-save"></i> Save Settings
+                        <i class="fas fa-save"></i> Lưu cài đặt
                     </button>
                 </div>
             </section>
@@ -268,14 +268,14 @@
     <div id="taskModal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 id="modalTitle">Processing Task</h3>
+                        <h3 id="modalTitle">Tác vụ xử lý</h3>
                 <button class="modal-close">&times;</button>
             </div>
             <div class="modal-body" id="modalBody"></div>
             <div class="modal-footer">
-                <button class="btn btn-secondary modal-close">Close</button>
+                <button class="btn btn-secondary modal-close">Đóng</button>
                 <button id="downloadBtn" class="btn btn-primary hidden">
-                    <i class="fas fa-download"></i> Download
+                    <i class="fas fa-download"></i> Tải xuống
                 </button>
             </div>
         </div>

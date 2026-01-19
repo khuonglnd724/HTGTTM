@@ -75,6 +75,13 @@ class LaneViolationPipeline:
         
         self.violation_count = 0
         self.violation_history = {}
+        # Temporal smoothing for lane boundaries to reduce jitter
+        self.prev_boundaries = None
+        self.boundary_alpha = float(self.config.get('processing.boundary_alpha', 0.6))
+
+        # Zone presence tracking: keep recent track_ids that were in-zone
+        self.zone_presence = {}  # track_id -> last_frame_seen_in_zone
+        self.zone_grace_frames = int(self.config.get('tracking.zone_grace_frames', 3))
         
         Logger.info("Pipeline initialized successfully")
     
@@ -103,6 +110,35 @@ class LaneViolationPipeline:
         # Detect lanes
         lane_result = self.lane_detector.detect_lanes(frame)
         lane_boundaries = self.lane_detector.get_lane_boundaries(frame)
+
+        # Temporal smoothing of lane boundaries to reduce jitter (simple EMA)
+        current_bounds = lane_boundaries.get('boundaries', [])
+        if self.prev_boundaries is None or len(self.prev_boundaries) != len(current_bounds):
+            # Initialize previous boundaries
+            # Make a deep copy of current bounds
+            self.prev_boundaries = [dict(b) for b in current_bounds]
+        else:
+            # Smooth each boundary element
+            alpha = self.boundary_alpha
+            for i in range(len(current_bounds)):
+                curr = current_bounds[i]
+                prev = self.prev_boundaries[i]
+                # Smooth numeric fields if present
+                try:
+                    prev_left = float(prev.get('left', 0))
+                    prev_right = float(prev.get('right', 0))
+                    curr_left = float(curr.get('left', prev_left))
+                    curr_right = float(curr.get('right', prev_right))
+                    prev['left'] = int(round(alpha * curr_left + (1 - alpha) * prev_left))
+                    prev['right'] = int(round(alpha * curr_right + (1 - alpha) * prev_right))
+                    # Update center and width
+                    prev['center'] = (prev['left'] + prev['right']) / 2
+                    prev['width'] = prev['right'] - prev['left']
+                except Exception:
+                    # If smoothing fails, fallback to current
+                    self.prev_boundaries[i] = dict(curr)
+
+        lane_boundaries['boundaries'] = self.prev_boundaries
         results['lane_boundaries'] = lane_boundaries
         
         # Detect vehicles with tracking
@@ -115,20 +151,30 @@ class LaneViolationPipeline:
             for detection in detections:
                 # Get vehicle center point
                 cx, cy = detection['center']
-                
+                track_id = int(detection.get('track_id', -1)) if detection.get('track_id') is not None else -1
+
                 # Check if center is inside ANY of the selected zones
                 in_any_zone = False
                 for zone_id in self.selected_zone_ids:
                     zone = self.zone_manager.get_zone(zone_id)
                     if zone and zone.contains_point((cx, cy)):
                         in_any_zone = True
+                        # update presence
+                        if track_id >= 0:
+                            self.zone_presence[track_id] = frame_num
                         break
-                
+
+                # Allow brief exits: if we recently saw this track in the zone, keep it for a grace period
+                if not in_any_zone and track_id >= 0:
+                    last_seen = self.zone_presence.get(track_id)
+                    if last_seen is not None and (frame_num - last_seen) <= self.zone_grace_frames:
+                        in_any_zone = True
+
                 if in_any_zone:
                     filtered_detections.append(detection)
-                    Logger.debug(f"Frame {frame_num}: Vehicle {detection['track_id']} in selected zones")
+                    Logger.debug(f"Frame {frame_num}: Vehicle {detection.get('track_id', -1)} in selected zones")
                 else:
-                    Logger.debug(f"Frame {frame_num}: Vehicle {detection['track_id']} outside all selected zones")
+                    Logger.debug(f"Frame {frame_num}: Vehicle {detection.get('track_id', -1)} outside all selected zones")
             
             detections = filtered_detections
             Logger.debug(f"Frame {frame_num}: Filtered detections {len(detection_result['detections'])} -> {len(detections)}")
