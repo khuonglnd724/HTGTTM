@@ -1,5 +1,5 @@
 ultralytics==8.0.238
-opencv-python==4.8.1.78
+# opencv-python==4.8.1.78  # disabled: use opencv-contrib-python to avoid conflicts
 numpy==1.24.3
 opencv-contrib-python==4.8.1.78
 torch==2.1.1
