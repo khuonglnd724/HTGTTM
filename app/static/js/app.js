@@ -1,5 +1,21 @@
 /* Main Application Logic */
 
+// Safety stub: if `UI` failed to load (syntax error in ui.js), provide minimal fallbacks
+if (typeof window.UI === 'undefined') {
+    window.UI = {
+        showSection: function(name){
+            document.querySelectorAll('.content-section').forEach(s=>s.classList.remove('active'));
+            const el = document.getElementById(name+'-section'); if (el) el.classList.add('active');
+        },
+        updateConfidenceSlider: function(v){ const el=document.getElementById('confidenceValue'); if(el) el.textContent = (Number(v)||0).toFixed(1); },
+        setProcessButtons: function(mainEnabled=false,zonesEnabled=false){ const btn=document.getElementById('processBtn'); if(btn){ btn.disabled = !mainEnabled; if(!mainEnabled) btn.classList.add('disabled'); else btn.classList.remove('disabled'); } },
+        showUploadStatus: function(msg, ok=true){ const st=document.getElementById('uploadStatus'); if(st){ st.className = 'upload-status ' + (ok? 'success':'error'); st.innerHTML = `<div><span>${msg}</span></div>`; st.classList.remove('hidden'); } },
+        showToast: function(msg,type='info',dur=3000){ const t=document.getElementById('toast'); if(!t) return; t.textContent = msg; t.className = `toast show ${type}`; setTimeout(()=>{ t.classList.remove('show'); }, dur); },
+        renderTaskCard: function(t){ return `<div class="task-card"><div class="task-header"><div class="task-title">${t.task_id}</div></div></div>`; },
+        renderResultCard: function(t){ return `<div class="task-card"><div class="task-header"><div class="task-title">${t.task_id}</div></div></div>`; }
+    };
+}
+
 class App {
     constructor() {
         this.uploadedFile = null;

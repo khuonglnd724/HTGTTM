@@ -740,11 +740,26 @@ class WebServer:
                     annotated = pipeline.draw_results(first_frame, results)
                     pipeline.video_processor.write_frame(annotated)
                     detections_count = len(results.get('detections', []))
-                    violations_count = len([v for v in results.get('violations', []) if v.get('is_violating')])
+                    # Record unique detected vehicles for analytics
+                    try:
+                        for det in results.get('detections', []):
+                            tid = det.get('track_id')
+                            if tid is not None:
+                                try:
+                                    analytics.record_detection(int(tid))
+                                except Exception:
+                                    analytics.record_detection(tid)
+                    except Exception:
+                        pass
+
+                    violations_count = len([v for v in results.get('violations', []) if v.get('is_confirmed')])
                     analytics.record_frame_data(frame_count, detections_count, violations_count)
                     for v in results.get('violations', []):
-                        if v.get('is_violating') and v.get('track_id') is not None:
-                            analytics.record_violation(v['track_id'])
+                        if v.get('is_confirmed') and v.get('track_id') is not None:
+                            try:
+                                analytics.record_violation(int(v['track_id']))
+                            except Exception:
+                                analytics.record_violation(v['track_id'])
                 except Exception as frame_error:
                     Logger.warning(f"[Task {task_id}] Error processing frame {frame_count}: {str(frame_error)}")
                 frame_count += 1
@@ -759,13 +774,28 @@ class WebServer:
                         annotated = pipeline.draw_results(frame, results)
                         pipeline.video_processor.write_frame(annotated)
 
+                        # Record unique detected vehicles for analytics
+                        try:
+                            for det in results.get('detections', []):
+                                tid = det.get('track_id')
+                                if tid is not None:
+                                    try:
+                                        analytics.record_detection(int(tid))
+                                    except Exception:
+                                        analytics.record_detection(tid)
+                        except Exception:
+                            pass
+
                         # Record analytics per frame
                         detections_count = len(results.get('detections', []))
-                        violations_count = len([v for v in results.get('violations', []) if v.get('is_violating')])
+                        violations_count = len([v for v in results.get('violations', []) if v.get('is_confirmed')])
                         analytics.record_frame_data(frame_count, detections_count, violations_count)
                         for v in results.get('violations', []):
-                            if v.get('is_violating') and v.get('track_id') is not None:
-                                analytics.record_violation(v['track_id'])
+                            if v.get('is_confirmed') and v.get('track_id') is not None:
+                                try:
+                                    analytics.record_violation(int(v['track_id']))
+                                except Exception:
+                                    analytics.record_violation(v['track_id'])
                     except Exception as frame_error:
                         Logger.warning(f"[Task {task_id}] Error processing frame {frame_count}: {str(frame_error)}")
                         # Continue to next frame even if one fails
@@ -828,17 +858,33 @@ class WebServer:
             snapshots_list = []
             try:
                 saved = getattr(pipeline, 'saved_violation_snapshots', {}) or {}
-                for tid, url in saved.items():
-                    # Try to get first violation frame from detector history
+                for tid, info in saved.items():
+                    # Normalize both legacy string URL and new metadata dict
                     try:
                         first_frame = pipeline.violation_detector.violation_history.get(int(tid), {}).get('first_violation_frame')
                     except Exception:
                         first_frame = pipeline.violation_detector.violation_history.get(tid, {}).get('first_violation_frame')
-                    snapshots_list.append({
-                        'track_id': tid,
-                        'snapshot_url': url,
-                        'first_violation_frame': first_frame
-                    })
+
+                    if isinstance(info, dict):
+                        snapshots_list.append({
+                            'track_id': tid,
+                            'snapshot_url': info.get('snapshot_full') or info.get('snapshot'),
+                            'snapshot_crop_url': info.get('snapshot_crop'),
+                            'bbox': info.get('bbox'),
+                            'image_width': info.get('image_width'),
+                            'image_height': info.get('image_height'),
+                            'first_violation_frame': info.get('first_violation_frame') or first_frame
+                        })
+                    else:
+                        snapshots_list.append({
+                            'track_id': tid,
+                            'snapshot_url': info,
+                            'snapshot_crop_url': None,
+                            'bbox': None,
+                            'image_width': None,
+                            'image_height': None,
+                            'first_violation_frame': first_frame
+                        })
             except Exception as e:
                 Logger.warning(f"[{task_id}] Failed collecting snapshots: {e}")
 

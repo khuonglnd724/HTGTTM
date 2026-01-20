@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 from typing import Dict, List
 from pathlib import Path
+from collections import OrderedDict
 
 from src.utils.config_loader import ConfigLoader
 from src.utils.logger import Logger
@@ -85,6 +86,11 @@ class LaneViolationPipeline:
         # Store saved violation snapshots: track_id -> relative URL
         self.saved_violation_snapshots = {}
 
+        # Small frame buffer to allow saving an earlier frame (first violation)
+        # Key: frame_num -> frame (numpy array). Use OrderedDict to pop oldest.
+        self.frame_buffer = OrderedDict()
+        self.frame_buffer_max = int(self.config.get('processing.frame_buffer', 12))
+
         # Workflow flags
         # Require at least one zone to be defined before vehicle tracking/violation processing
         # This disables automatic lane detection as the primary method.
@@ -112,7 +118,16 @@ class LaneViolationPipeline:
             'violations': [],
             'lane_boundaries': {}
         }
-        
+        # Store frame in ring buffer to allow saving earlier frames (e.g., first violation frame)
+        try:
+            # keep a shallow copy reference; avoid copying large arrays unnecessarily
+            self.frame_buffer[frame_num] = frame.copy()
+            # trim buffer
+            while len(self.frame_buffer) > self.frame_buffer_max:
+                self.frame_buffer.popitem(last=False)
+        except Exception:
+            pass
+
         # Skip frames if configured
         if frame_num % self.frame_skip != 0:
             return results
@@ -223,11 +238,23 @@ class LaneViolationPipeline:
             results['violations'] = violations
 
             # Determine dynamic confirmation threshold based on frame_skip
-            if self.frame_skip <= 2:
+            # Mapping: require 3 consecutive frames at frame_skip=1 (default behavior),
+            # reduce to 2 for moderate frame skips, and 1 for large skips.
+            try:
+                fs = int(self.frame_skip)
+            except Exception:
+                fs = 1
+
+            if fs <= 0:
                 confirm_required = self.confirmation_base
-            elif self.frame_skip <= 5:
-                confirm_required = max(1, self.confirmation_base - 1)
+            elif fs <= 2:
+                # For low frame skips, keep the base confirmation (3)
+                confirm_required = max(1, int(self.confirmation_base))
+            elif fs <= 5:
+                # Moderate frame skips: reduce requirement to 2
+                confirm_required = 2
             else:
+                # High frame skips: single confirmation
                 confirm_required = 1
 
             Logger.debug(f"Frame {frame_num}: confirmation threshold={confirm_required} (frame_skip={self.frame_skip})")
@@ -239,11 +266,14 @@ class LaneViolationPipeline:
                     consecutive = int(violation.get('consecutive_violations', 0))
                     track_id = int(violation.get('track_id', -1)) if violation.get('track_id') is not None else -1
 
+                    # Mark whether this violation is considered "confirmed" based on consecutive frames
+                    violation['is_confirmed'] = bool(is_violating and (consecutive >= confirm_required))
+
                     # Only count and snapshot when confirmed by consecutive frames
-                    if is_violating and consecutive >= confirm_required:
+                    if violation.get('is_confirmed'):
                         self.violation_count += 1
 
-                        # Save one annotated full-frame snapshot per track_id
+                        # Save one set of snapshots per track_id (full annotated + cropped vehicle)
                         if track_id not in self.saved_violation_snapshots:
                             try:
                                 out_base = Path.cwd() / 'data' / 'outputs' / 'violations'
@@ -251,16 +281,70 @@ class LaneViolationPipeline:
                                 save_dir = out_base / subdir
                                 save_dir.mkdir(parents=True, exist_ok=True)
 
-                                # Create annotated full-frame for snapshot
+                                # Create annotated full-frame for snapshot (use current frame)
                                 annotated = self.draw_results(frame, results)
-                                filename = f"violation_full_track{track_id}_frame{frame_num}.jpg"
-                                out_path = save_dir / filename
-                                cv2.imwrite(str(out_path), annotated)
+                                filename_full = f"violation_full_track{track_id}_frame{frame_num}.jpg"
+                                out_path_full = save_dir / filename_full
+                                cv2.imwrite(str(out_path_full), annotated)
+                                rel_url_full = f"/api/violation-snapshot/{subdir}/{filename_full}"
 
-                                rel_url = f"/api/violation-snapshot/{subdir}/{filename}"
-                                violation['snapshot'] = rel_url
-                                self.saved_violation_snapshots[track_id] = rel_url
-                                Logger.info(f"Saved violation snapshot: {out_path}")
+                                # Determine best frame for cropping: prefer first_violation_frame if buffered
+                                first_frame_idx = None
+                                try:
+                                    first_frame_idx = self.violation_detector.violation_history.get(int(track_id), {}).get('first_violation_frame')
+                                except Exception:
+                                    first_frame_idx = self.violation_detector.violation_history.get(track_id, {}).get('first_violation_frame')
+
+                                if first_frame_idx is not None and first_frame_idx in self.frame_buffer:
+                                    crop_source = self.frame_buffer[first_frame_idx]
+                                    crop_frame_num = first_frame_idx
+                                else:
+                                    crop_source = frame
+                                    crop_frame_num = frame_num
+
+                                # Crop vehicle box from crop_source using detection bbox if available
+                                detection = violation.get('detection') or {}
+                                box = detection.get('box') if detection else None
+                                crop_url = None
+                                meta_bbox = None
+                                if box and isinstance(box, (list, tuple)) and len(box) >= 4:
+                                    x1, y1, x2, y2 = [int(round(float(v))) for v in box[:4]]
+                                    h_src, w_src = crop_source.shape[0], crop_source.shape[1]
+                                    # add padding (10% of box size)
+                                    bw = max(1, x2 - x1)
+                                    bh = max(1, y2 - y1)
+                                    pad_x = int(bw * 0.15)
+                                    pad_y = int(bh * 0.15)
+                                    cx1 = max(0, x1 - pad_x)
+                                    cy1 = max(0, y1 - pad_y)
+                                    cx2 = min(w_src - 1, x2 + pad_x)
+                                    cy2 = min(h_src - 1, y2 + pad_y)
+
+                                    try:
+                                        crop = crop_source[cy1:cy2, cx1:cx2]
+                                        filename_crop = f"violation_crop_track{track_id}_frame{crop_frame_num}.jpg"
+                                        out_path_crop = save_dir / filename_crop
+                                        cv2.imwrite(str(out_path_crop), crop)
+                                        rel_url_crop = f"/api/violation-snapshot/{subdir}/{filename_crop}"
+                                        crop_url = rel_url_crop
+                                        meta_bbox = [int(cx1), int(cy1), int(cx2), int(cy2)]
+                                    except Exception as e:
+                                        Logger.warning(f"[{self.task_id}] Failed to create crop for track {track_id}: {e}")
+
+                                # Build snapshot metadata (include bbox and source frame info)
+                                snapshot_info = {
+                                    'track_id': track_id,
+                                    'snapshot_full': rel_url_full,
+                                    'snapshot_crop': crop_url,
+                                    'bbox': meta_bbox,
+                                    'image_width': int(frame.shape[1]),
+                                    'image_height': int(frame.shape[0]),
+                                    'first_violation_frame': first_frame_idx
+                                }
+
+                                violation['snapshot'] = snapshot_info
+                                self.saved_violation_snapshots[track_id] = snapshot_info
+                                Logger.info(f"Saved violation snapshots for track {track_id}: {out_path_full}")
                             except Exception as e:
                                 Logger.error(f"Failed saving violation snapshot for track {track_id}: {e}")
                 except Exception:
@@ -359,11 +443,16 @@ class LaneViolationPipeline:
                 cv2.circle(frame_copy, (int(cx), int(cy)), 3, (0, 255, 0), -1)
         
         # Draw statistics
-        # Count only confirmed violations according to dynamic threshold
-        if self.frame_skip <= 2:
-            stats_confirm_required = self.confirmation_base
-        elif self.frame_skip <= 5:
-            stats_confirm_required = max(1, self.confirmation_base - 1)
+        # Count only confirmed violations according to same dynamic threshold logic
+        try:
+            fs = int(self.frame_skip)
+        except Exception:
+            fs = 1
+
+        if fs <= 0:
+            stats_confirm_required = 3
+        elif fs <= 5:
+            stats_confirm_required = max(1, int(round(5.0 - (fs - 1) * (3.0 / 4.0))))
         else:
             stats_confirm_required = 1
 

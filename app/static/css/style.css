@@ -782,6 +782,57 @@ body {
     font-size: 0.75rem;
 }
 
+/* ===== Snapshot Viewer ===== */
+#snapshotViewer {
+    backdrop-filter: blur(4px);
+}
+
+#snapshotInner {
+    box-shadow: 0 30px 60px rgba(2,6,23,0.6);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+#snapshotImage {
+    border-radius: 6px;
+    background: #111;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    transition: transform 0.25s ease, opacity 0.25s ease;
+}
+
+#snapshotCaption {
+    margin-top: 10px;
+    color: #e5e7eb;
+    font-size: 14px;
+}
+
+#snapshotPrev, #snapshotNext {
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.06);
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.12s ease;
+}
+
+#snapshotPrev:hover, #snapshotNext:hover {
+    background: rgba(255,255,255,0.12);
+    transform: translateY(-2px);
+}
+
+#snapshotClose {
+    background: transparent;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+}
+
+@media (max-width: 768px) {
+    #snapshotInner { width: 95%; padding: 10px; }
+    #snapshotPrev, #snapshotNext { padding: 6px 10px; }
+}
+
 .checkbox-group {
     display: flex;
     flex-direction: column;
