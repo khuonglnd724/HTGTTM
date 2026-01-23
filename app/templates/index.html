@@ -3,20 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Phát Hiện Vi Phạm Làn</title>
+    <title>Hệ Thống Phát Hiện Vi Phạm Làn Giao Thông Thông Minh</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
     <!-- Navigation Bar -->
     <nav class="navbar">
         <div class="navbar-container">
             <div class="navbar-brand">
-                <span>Phát hiện vi phạm làn</span>
+                <i class="fas fa-road"></i>
+                <span>Hệ Thống GTTT</span>
+                <span class="brand-subtitle">Phát hiện vi phạm làn</span>
             </div>
-            <div class="navbar-status">
-                <div class="status-indicator" id="statusIndicator"></div>
-                <span id="statusText">Đang kết nối...</span>
+            <div class="navbar-center">
+                <div class="navbar-title-main">Hệ Thống Giao Thông Thông Minh</div>
+            </div>
+            <div class="navbar-actions">
+                <button id="darkModeToggle" class="icon-btn" title="Chế độ tối">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <div class="navbar-status">
+                    <div class="status-indicator" id="statusIndicator"></div>
+                    <span id="statusText">Đang kết nối...</span>
+                </div>
             </div>
         </div>
     </nav>
@@ -26,19 +38,36 @@
         <!-- Sidebar -->
         <aside class="sidebar">
             <div class="sidebar-menu">
-                <button class="menu-btn active" data-section="upload">
+                <button class="menu-btn active" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button class="menu-btn" data-section="upload">
+                    <i class="fas fa-cloud-upload-alt"></i>
                     <span>Tải lên</span>
                 </button>
+                <button class="menu-btn" data-section="zones" id="menuZonesBtn">
+                    <i class="fas fa-draw-polygon"></i>
+                    <span>Quản lý vùng</span>
+                </button>
                 <button class="menu-btn" data-section="processing">
-                    <span>Xử lý</span>
+                    <i class="fas fa-cog fa-spin-slow"></i>
+                    <span>Đang xử lý</span>
                 </button>
                 <button class="menu-btn" data-section="results">
+                    <i class="fas fa-file-video"></i>
                     <span>Kết quả</span>
                 </button>
-                <button class="menu-btn" data-section="zones" id="menuZonesBtn" style="display: none;">
-                    <span>Vùng</span>
+                <button class="menu-btn" data-section="violations">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>Vi phạm</span>
+                </button>
+                <button class="menu-btn" data-section="reports">
+                    <i class="fas fa-file-export"></i>
+                    <span>Báo cáo</span>
                 </button>
                 <button class="menu-btn" data-section="settings">
+                    <i class="fas fa-sliders-h"></i>
                     <span>Cài đặt</span>
                 </button>
             </div>
@@ -46,13 +75,173 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="content-section active">
+                <div class="dashboard-header">
+                    <h2><i class="fas fa-chart-line"></i> Dashboard Tổng Quan</h2>
+                    <p class="section-subtitle">Giám sát hệ thống phát hiện vi phạm làn giao thông thông minh</p>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-card-primary">
+                        <div class="stat-icon">
+                            <i class="fas fa-car"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Phương tiện phát hiện</div>
+                            <div class="stat-value" id="totalVehicles">0</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-arrow-up"></i>
+                                <span id="vehiclesTrend">+0%</span> so với hôm qua
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-danger">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Tổng vi phạm</div>
+                            <div class="stat-value" id="totalViolations">0</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-arrow-down"></i>
+                                <span id="violationsTrend">-0%</span> so với hôm qua
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-success">
+                        <div class="stat-icon">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Độ chính xác</div>
+                            <div class="stat-value" id="accuracy">95.2%</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Ổn định</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-warning">
+                        <div class="stat-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Video đã xử lý</div>
+                            <div class="stat-value" id="processedVideos">0</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-clock"></i>
+                                <span id="avgProcessTime">~0s</span> TB/video
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-info">
+                        <div class="stat-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Độ tin cậy trung bình</div>
+                            <div class="stat-value" id="avgConfidence">0%</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-check"></i>
+                                <span id="confidenceTrend">Bình thường</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card stat-card-secondary">
+                        <div class="stat-icon">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                        <div class="stat-content">
+                            <div class="stat-label">Loại vi phạm phổ biến</div>
+                            <div class="stat-value" id="topViolationType">-</div>
+                            <div class="stat-trend">
+                                <i class="fas fa-chart-pie"></i>
+                                <span id="violationTypeCount">0 lần</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="charts-row">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-bar"></i> Vi phạm theo loại phương tiện</h3>
+                            <select id="vehicleChartPeriod" class="chart-period-select">
+                                <option value="today">Hôm nay</option>
+                                <option value="week">Tuần này</option>
+                                <option value="month" selected>Tháng này</option>
+                            </select>
+                        </div>
+                        <canvas id="vehicleViolationsChart"></canvas>
+                    </div>
+
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3><i class="fas fa-chart-line"></i> Xu hướng vi phạm theo thời gian</h3>
+                            <select id="trendChartPeriod" class="chart-period-select">
+                                <option value="today">Hôm nay</option>
+                                <option value="week" selected>7 ngày qua</option>
+                                <option value="month">30 ngày qua</option>
+                            </select>
+                        </div>
+                        <canvas id="violationTrendChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Activity & Top Violations -->
+                <div class="dashboard-bottom-row">
+                    <div class="activity-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-history"></i> Hoạt động gần đây</h3>
+                        </div>
+                        <div class="activity-list" id="recentActivity">
+                            <div class="activity-item">
+                                <div class="activity-icon activity-icon-info">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <div class="activity-title">Hệ thống sẵn sàng</div>
+                                    <div class="activity-time">Vừa xong</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Removed Top 5 zones card as requested -->
+
+                    <div class="top-violations-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-car"></i> Top xe vi phạm</h3>
+                        </div>
+                        <div class="top-violations-list" id="topVehicles">
+                            <div class="empty-state" style="padding: 2rem; text-align: center; font-size: 0.875rem;">
+                                <p>Chưa có dữ liệu xe vi phạm</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Upload Section -->
-            <section id="upload-section" class="content-section active">
-                <h2>Tải video / hình ảnh</h2>
+            <section id="upload-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-cloud-upload-alt"></i> Tải lên Video / Hình ảnh</h2>
+                    <p class="section-subtitle">Tải lên video hoặc hình ảnh giao thông để phát hiện vi phạm làn</p>
+                </div>
                 
                 <div class="upload-area" id="uploadArea">
+                    <i class="fas fa-cloud-upload-alt"></i>
                     <p>Kéo thả tệp vào đây</p>
                     <p class="small-text">hoặc nhấp để chọn</p>
+                    <p class="small-text">Hỗ trợ: MP4, AVI, JPEG, PNG</p>
                     <input type="file" id="fileInput" accept="video/mp4,video/avi,image/jpeg,image/png" hidden>
                 </div>
 
@@ -121,23 +310,55 @@
 
             <!-- Results Section -->
             <section id="results-section" class="content-section">
-                <h2>Kết quả xử lý</h2>
-                
-                <div class="results-filter">
-                    <button class="filter-btn active" data-filter="all">Tất cả</button>
-                    <button class="filter-btn" data-filter="completed">Hoàn thành</button>
-                    <button class="filter-btn" data-filter="failed">Thất bại</button>
+                <div class="section-header">
+                    <h2><i class="fas fa-file-video"></i> Kết quả xử lý</h2>
                 </div>
+                
+                <div class="results-container">
+                    <!-- Left: Videos List -->
+                    <div class="results-videos-panel">
+                        <h3>Video xử lý</h3>
+                        <div class="results-filter">
+                            <button class="filter-btn active" data-filter="all">Tất cả</button>
+                            <button class="filter-btn" data-filter="completed">Hoàn thành</button>
+                            <button class="filter-btn" data-filter="failed">Thất bại</button>
+                        </div>
+                        <div id="resultsList" class="results-list">
+                            <p class="empty-state">Chưa có kết quả</p>
+                        </div>
+                    </div>
 
-                <div id="resultsList" class="results-list">
-                    <p class="empty-state">Chưa có kết quả</p>
+                    <!-- Right: Statistics -->
+                    <div class="results-stats-panel">
+                        <h3>Thống kê</h3>
+                        <div class="results-stats-card">
+                            <div class="results-stat-item">
+                                <div class="results-stat-label">Tổng xe đếm được</div>
+                                <div class="results-stat-value" id="totalDetectedVehicles">0</div>
+                            </div>
+                            <div class="results-stat-item">
+                                <div class="results-stat-label">Xe vi phạm</div>
+                                <div class="results-stat-value" id="totalViolatingVehicles2">0</div>
+                            </div>
+                            <div class="results-stat-item">
+                                <div class="results-stat-label">Tổng vi phạm</div>
+                                <div class="results-stat-value" id="totalViolationsCount">0</div>
+                            </div>
+                            <div class="results-stat-item">
+                                <div class="results-stat-label">Độ chính xác TB</div>
+                                <div class="results-stat-value" id="avgAccuracyResults">-</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
 
-            <!-- Zones Section -->
+            <!-- Zones Section (Hidden until video uploaded) -->
             <section id="zones-section" class="content-section">
-                <h2>Vùng phát hiện</h2>
-                <p class="section-description">Định nghĩa vùng và giới hạn loại phương tiện</p>
+                <div class="section-header">
+                    <h2><i class="fas fa-draw-polygon"></i> Quản lý vùng phát hiện</h2>
+                    <p class="section-subtitle">Định nghĩa vùng giới hạn và quy tắc phương tiện cho từng làn đường</p>
+                </div>
                 
                 <div class="zones-toolbar">
                     <button id="addZoneBtn" class="btn btn-primary">
@@ -150,10 +371,11 @@
 
                 <div class="zones-container">
                     <div class="zones-canvas-wrapper">
-                        <canvas id="zonesCanvas" width="1280" height="720"></canvas>
                         <div id="canvasInstructions" class="canvas-instructions">
-                            Nhấp để thêm điểm. Nhấp đúp để hoàn tất đa giác.
+                            <i class="fas fa-mouse"></i>
+                            <span>Nhấp để thêm điểm. Nhấp đúp để hoàn tất đa giác.</span>
                         </div>
+                        <canvas id="zonesCanvas" width="1280" height="720"></canvas>
                     </div>
 
                     <div class="zones-list-panel">
@@ -179,21 +401,42 @@
                         </div>
                         <div class="modal-body">
                             <div class="form-group">
-                                <label for="zoneName">Tên vùng</label>
-                                <input type="text" id="zoneName" placeholder="ví dụ: Làn xe ô tô 1">
+                                <label for="zoneName"><i class="fas fa-tag"></i> Tên vùng/làn đường</label>
+                                <input type="text" id="zoneName" placeholder="VD: Làn 1 - Xe ô tô, Làn 2 - Xe máy">
+                                <small class="form-hint">Đặt tên rõ ràng để dễ nhận biết</small>
                             </div>
                             <div class="form-group">
-                                <label>Loại phương tiện cho phép</label>
-                                <div class="checkbox-group">
-                                    <label><input type="checkbox" value="car" class="vehicle-type-check"> Ô tô</label>
-                                    <label><input type="checkbox" value="motorcycle" class="vehicle-type-check"> Xe máy</label>
-                                    <label><input type="checkbox" value="bus" class="vehicle-type-check"> Xe buýt</label>
-                                    <label><input type="checkbox" value="truck" class="vehicle-type-check"> Xe tải</label>
+                                <label><i class="fas fa-car"></i> Loại phương tiện cho phép</label>
+                                <div class="checkbox-group checkbox-group-horizontal">
+                                    <label class="checkbox-card">
+                                        <input type="checkbox" value="car" class="vehicle-type-check">
+                                        <i class="fas fa-car"></i>
+                                        <span>Ô tô</span>
+                                    </label>
+                                    <label class="checkbox-card">
+                                        <input type="checkbox" value="motorcycle" class="vehicle-type-check">
+                                        <i class="fas fa-motorcycle"></i>
+                                        <span>Xe máy</span>
+                                    </label>
+                                    <label class="checkbox-card">
+                                        <input type="checkbox" value="bus" class="vehicle-type-check">
+                                        <i class="fas fa-bus"></i>
+                                        <span>Xe buýt</span>
+                                    </label>
+                                    <label class="checkbox-card">
+                                        <input type="checkbox" value="truck" class="vehicle-type-check">
+                                        <i class="fas fa-truck"></i>
+                                        <span>Xe tải</span>
+                                    </label>
                                 </div>
+                                <small class="form-hint">Chọn loại phương tiện được phép di chuyển trong vùng này</small>
                             </div>
                             <div class="form-group">
-                                <label for="zoneColor">Màu vùng</label>
-                                <input type="color" id="zoneColor" value="#00ff00">
+                                <label for="zoneColor"><i class="fas fa-palette"></i> Màu vùng</label>
+                                <div class="color-picker-wrapper">
+                                    <input type="color" id="zoneColor" value="#00ff00">
+                                    <span id="colorPreview" class="color-preview"></span>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
@@ -204,9 +447,189 @@
                 </div>
             </section>
 
+            <!-- Violations Section -->
+            <section id="violations-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-exclamation-triangle"></i> Danh sách vi phạm</h2>
+                    <p class="section-subtitle">Xem chi tiết các vi phạm làn đã phát hiện</p>
+                </div>
+
+                <div class="violations-filters">
+                    <div class="filter-group">
+                        <label><i class="fas fa-calendar"></i> Thời gian</label>
+                        <select id="violationDateFilter" class="filter-select">
+                            <option value="today">Hôm nay</option>
+                            <option value="week">Tuần này</option>
+                            <option value="month">Tháng này</option>
+                            <option value="all">Tất cả</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-car"></i> Loại xe</label>
+                        <select id="violationVehicleFilter" class="filter-select">
+                            <option value="all">Tất cả</option>
+                            <option value="car">Ô tô</option>
+                            <option value="motorcycle">Xe máy</option>
+                            <option value="bus">Xe buýt</option>
+                            <option value="truck">Xe tải</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label><i class="fas fa-map-marker-alt"></i> Vùng</label>
+                        <select id="violationZoneFilter" class="filter-select">
+                            <option value="all">Tất cả vùng</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="app.filterViolations()">
+                        <i class="fas fa-filter"></i> Lọc
+                    </button>
+                </div>
+
+                <div id="violationsList" class="violations-grid">
+                    <div class="empty-state">
+                        <i class="fas fa-search"></i>
+                        <p>Chưa có vi phạm nào được ghi nhận</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Reports Section -->
+            <section id="reports-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-export"></i> Xuất báo cáo</h2>
+                    <p class="section-subtitle">Tạo và xuất báo cáo chi tiết về vi phạm giao thông</p>
+                </div>
+
+                <div class="reports-container">
+                    <div class="report-card">
+                        <div class="report-icon">
+                            <i class="fas fa-file-pdf"></i>
+                        </div>
+                        <h3>Báo cáo PDF</h3>
+                        <p>Xuất báo cáo chi tiết với biểu đồ và thống kê</p>
+                        
+                        <div class="form-group">
+                            <label>Khoảng thời gian</label>
+                            <select id="pdfReportPeriod" class="filter-select">
+                                <option value="today">Hôm nay</option>
+                                <option value="week">Tuần này</option>
+                                <option value="month">Tháng này</option>
+                                <option value="custom">Tùy chỉnh</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" onclick="app.exportPDFReport()">
+                            <i class="fas fa-file-pdf"></i> Xuất PDF
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-icon">
+                            <i class="fas fa-file-csv"></i>
+                        </div>
+                        <h3>Dữ liệu CSV</h3>
+                        <p>Xuất dữ liệu vi phạm dạng bảng để phân tích</p>
+                        
+                        <div class="form-group">
+                            <label>Bao gồm</label>
+                            <div class="checkbox-group">
+                                <label>
+                                    <input type="checkbox" checked id="csvIncludeViolations">
+                                    Vi phạm
+                                </label>
+                                <label>
+                                    <input type="checkbox" checked id="csvIncludeVehicles">
+                                    Phương tiện
+                                </label>
+                                <label>
+                                    <input type="checkbox" id="csvIncludeZones">
+                                    Vùng
+                                </label>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" onclick="app.exportCSVReport()">
+                            <i class="fas fa-file-csv"></i> Xuất CSV
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-icon">
+                            <i class="fas fa-video"></i>
+                        </div>
+                        <h3>Video clip vi phạm</h3>
+                        <p>Cắt video 5s từ video gốc cho mỗi xe vi phạm</p>
+                        
+                        <div class="form-group">
+                            <label>Trạng thái</label>
+                            <select id="videoClipsFormat" class="filter-select">
+                                <option value="video">Video clip (5s mỗi xe)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" onclick="app.exportVideoClips()">
+                            <i class="fas fa-video"></i> Xuất Video
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h3>Hình ảnh vi phạm</h3>
+                        <p>Xuất các hình ảnh chụp xe vi phạm chi tiết</p>
+                        
+                        <div class="form-group">
+                            <label>Định dạng</label>
+                            <select id="clipsFormat" class="filter-select">
+                                <option value="full">Ảnh đầy đủ (chất lượng cao)</option>
+                                <option value="crop">Ảnh cắt (chi tiết xe)</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-primary btn-block" onclick="app.exportViolationClips()">
+                            <i class="fas fa-image"></i> Xuất Ảnh
+                        </button>
+                    </div>
+
+                    <div class="report-card">
+                        <div class="report-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <h3>Báo cáo tổng hợp</h3>
+                        <p>Báo cáo đầy đủ: PDF + CSV + Hình ảnh</p>
+                        
+                        <div class="form-group">
+                            <label>Khoảng thời gian</label>
+                            <select id="fullReportPeriod" class="filter-select">
+                                <option value="today">Hôm nay</option>
+                                <option value="week">Tuần này</option>
+                                <option value="month">Tháng này</option>
+                            </select>
+                        </div>
+
+                        <button class="btn btn-success btn-block" onclick="app.exportFullReport()">
+                            <i class="fas fa-download"></i> Xuất đầy đủ
+                        </button>
+                    </div>
+                </div>
+
+                <div class="report-history">
+                    <h3><i class="fas fa-history"></i> Lịch sử xuất báo cáo</h3>
+                    <div id="reportHistoryList" class="report-history-list">
+                        <div class="empty-state">
+                            <p>Chưa có báo cáo nào được tạo</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             <!-- Settings Section -->
             <section id="settings-section" class="content-section">
-                <h2>Cài đặt hệ thống</h2>
+                <div class="section-header">
+                    <h2><i class="fas fa-sliders-h"></i> Cài đặt hệ thống</h2>
+                    <p class="section-subtitle">Tùy chỉnh thông số và cấu hình hệ thống</p>
+                </div>
                 
                 <div class="settings-container">
                     <div class="settings-group">
@@ -286,6 +709,7 @@
     <script src="{{ url_for('static', filename='js/api.js') }}"></script>
     <script src="{{ url_for('static', filename='js/ui.js') }}"></script>
     <script src="{{ url_for('static', filename='js/zones.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>

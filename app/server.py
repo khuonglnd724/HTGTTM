@@ -3,8 +3,22 @@ import os
 import json
 import threading
 import cv2
+import io
+import csv
+import zipfile
+from PIL import Image, ImageDraw, ImageFont
 from datetime import datetime
 from pathlib import Path
+import sys
+
+# Ensure project root is on sys.path so imports like `from src...` work
+# Project root is two levels up from this file (workspace root)
+try:
+    project_root = str(Path(__file__).resolve().parent.parent)
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+except Exception:
+    pass
 from flask import Flask, render_template, request, jsonify, send_file, Response
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
@@ -61,6 +75,215 @@ class WebServer:
         # Setup routes
         self._setup_routes()
     
+    def _generate_violations_pdf(self):
+        """Helper function to generate PDF with violations"""
+        try:
+            # Get violations by scanning files directly
+            import re
+            base = Path.cwd() / 'data' / 'outputs' / 'violations'
+            if not base.exists():
+                return None
+
+            all_violations = []
+            seen_violations = set()
+            
+            for task_dir in base.iterdir():
+                if not task_dir.is_dir():
+                    continue
+                task_id = task_dir.name
+                
+                for file in sorted(task_dir.iterdir()):
+                    if not file.is_file():
+                        continue
+                    name = file.name
+                    # Only process violation_crop to avoid duplicate entries
+                    if not name.startswith('violation_crop'):
+                        continue
+                    
+                    # Parse track_id, vehicle_type, and frame number
+                    track_id = None
+                    vehicle_type = 'Xe khác'
+                    frame = None
+                    try:
+                        track_m = re.search(r'track(\d+)', name)
+                        vtype_m = re.search(r'track\d+_(\w+)_frame', name)
+                        frame_m = re.search(r'frame(\d+)', name)
+                        
+                        if track_m:
+                            track_id = int(track_m.group(1))
+                        if frame_m:
+                            frame = int(frame_m.group(1))
+                        
+                        if vtype_m:
+                            vtype_code = vtype_m.group(1).lower()
+                            vtype_map = {
+                                'otto': 'Ô tô',
+                                'xemay': 'Xe máy',
+                                'xebuyt': 'Xe buýt',
+                                'xetai': 'Xe tải',
+                                'khac': 'Xe khác'
+                            }
+                            vehicle_type = vtype_map.get(vtype_code, 'Xe khác')
+                    except Exception:
+                        pass
+                    
+                    # Avoid duplicates
+                    violation_key = f"{task_id}_{track_id}_{frame}"
+                    if violation_key in seen_violations:
+                        continue
+                    seen_violations.add(violation_key)
+                    
+                    mtime = datetime.fromtimestamp(file.stat().st_mtime).isoformat()
+                    all_violations.append({
+                        'id': name,
+                        'task_id': task_id,
+                        'filename': name,
+                        'track_id': track_id,
+                        'frame': frame,
+                        'timestamp': mtime,
+                        'vehicle_type': vehicle_type,
+                        'zone_name': 'Unknown',
+                        'violation_type': 'Lane',
+                        'confidence': 0.95
+                    })
+            
+            if not all_violations:
+                return None
+
+            # Resolve both crop and full paths
+            def resolve_image_paths(v):
+                task_id = v.get('task_id')
+                fname = str(v.get('filename'))
+                base_dir = Path.cwd() / 'data' / 'outputs' / 'violations' / str(task_id)
+                crop_path = base_dir / fname
+                
+                import re
+                track_match = re.search(r'track(\d+)', fname)
+                full_path = None
+                if track_match and base_dir.exists():
+                    track_id = track_match.group(1)
+                    for file in base_dir.iterdir():
+                        if file.name.startswith('violation_full_') and f'track{track_id}_' in file.name:
+                            full_path = file
+                            break
+                
+                return (
+                    crop_path if crop_path.exists() else None,
+                    full_path,
+                )
+
+            # Group by vehicle type
+            grouped_by_type = {}
+            for v in all_violations:
+                vt = v.get('vehicle_type') or 'Xe khác'
+                grouped_by_type.setdefault(vt, []).append(v)
+
+            # Load fonts
+            def load_font(size):
+                try:
+                    return ImageFont.truetype("C:/Windows/Fonts/arial.ttf", size)
+                except Exception:
+                    try:
+                        return ImageFont.truetype("Arial.ttf", size)
+                    except Exception:
+                        return ImageFont.load_default()
+
+            title_font = load_font(48)
+            header_font = load_font(32)
+            body_font = load_font(24)
+
+            # Summary metrics
+            unique_tracks = len({v.get('track_id') for v in all_violations if v.get('track_id') is not None})
+            type_counts = {vt: len(items) for vt, items in grouped_by_type.items()}
+            total_detected = 0
+            try:
+                for t in self.tasks.values():
+                    stats = getattr(t, 'analytics', None)
+                    if isinstance(stats, dict):
+                        total_detected += int(stats.get('total_detected_vehicles', 0))
+            except Exception:
+                pass
+
+            # Build pages
+            pages = []
+            page_size = (1240, 1754)
+            summary = Image.new('RGB', page_size, 'white')
+            draw = ImageDraw.Draw(summary)
+            y = 120
+            draw.text((100, y), "BÁO CÁO VI PHẠM LÀN", fill='black', font=title_font); y += 90
+            draw.text((100, y), f"Tổng số vi phạm: {len(all_violations)}", fill='black', font=header_font); y += 60
+            draw.text((100, y), f"Số lượng xe vi phạm: {unique_tracks}", fill='black', font=header_font); y += 60
+            draw.text((100, y), f"Số lượng xe đếm được: {total_detected}", fill='black', font=header_font); y += 80
+            draw.text((100, y), "Phân loại theo loại xe:", fill='black', font=header_font); y += 50
+            for vt, cnt in sorted(type_counts.items(), key=lambda x: -x[1]):
+                draw.text((140, y), f"- {vt}: {cnt}", fill='black', font=body_font); y += 35
+            pages.append(summary)
+
+            # Per vehicle type groups
+            for vt, items in grouped_by_type.items():
+                sorted_items = sorted(items, key=lambda v: v.get('timestamp',''))
+                for v in sorted_items[:50]:
+                    crop_path, full_path = resolve_image_paths(v)
+                    if not crop_path and not full_path:
+                        continue
+
+                    crop_img = None
+                    full_img = None
+                    try:
+                        if crop_path:
+                            crop_img = Image.open(str(crop_path)).convert('RGB')
+                    except Exception:
+                        crop_img = None
+                    try:
+                        if full_path:
+                            full_img = Image.open(str(full_path)).convert('RGB')
+                    except Exception:
+                        full_img = None
+
+                    margin = 80
+                    header_h = 240
+                    max_w = page_size[0] - 2*margin
+                    available_h = page_size[1] - header_h - margin
+                    gap = 30
+
+                    if crop_img and full_img:
+                        slot_h = (available_h - gap) // 2
+                        crop_img.thumbnail((max_w, slot_h), Image.Resampling.LANCZOS)
+                        full_img.thumbnail((max_w, slot_h), Image.Resampling.LANCZOS)
+                    else:
+                        one_img = crop_img or full_img
+                        one_img.thumbnail((max_w, available_h), Image.Resampling.LANCZOS)
+
+                    page = Image.new('RGB', page_size, 'white')
+                    pd = ImageDraw.Draw(page)
+                    pd.text((margin, 40), f"{vt}", fill='black', font=header_font)
+                    pd.text((margin, 100), f"Thời gian: {v.get('timestamp','')}", fill='black', font=body_font)
+                    pd.text((margin, 140), f"Zone: {v.get('zone_name','')}", fill='black', font=body_font)
+                    conf = v.get('confidence')
+                    if conf is not None:
+                        pd.text((margin, 180), f"Độ tin cậy: {float(conf)*100:.1f}%", fill='black', font=body_font)
+
+                    current_y = header_h
+                    if crop_img:
+                        paste_x = margin + int((max_w - crop_img.width) / 2)
+                        page.paste(crop_img, (paste_x, current_y))
+                        current_y += crop_img.height + gap
+
+                    if full_img:
+                        paste_x = margin + int((max_w - full_img.width) / 2)
+                        page.paste(full_img, (paste_x, current_y))
+
+                    pages.append(page)
+
+            mem = io.BytesIO()
+            first, rest = pages[0], pages[1:]
+            first.save(mem, format='PDF', save_all=True, append_images=rest, quality=95, dpi=(150, 150))
+            mem.seek(0)
+            return mem.getvalue()
+        except Exception as e:
+            Logger.error(f"Generate PDF error: {e}")
+            return None
+    
     def _setup_routes(self):
         """Setup Flask routes"""
         
@@ -71,13 +294,62 @@ class WebServer:
         
         @self.app.route('/api/status', methods=['GET'])
         def get_status():
-            """Get system status"""
+            """Get system status with aggregated analytics"""
             try:
+                tasks_count = len(self.tasks)
+                active_tasks = len([t for t in self.tasks.values() if getattr(t, 'status', None) == 'processing'])
+
+                # Aggregate analytics across tasks
+                total_detected = 0
+                total_violations = 0
+                processed_videos = 0
+                durations = []
+                try:
+                    for t in self.tasks.values():
+                        if getattr(t, 'status', None) == 'completed':
+                            processed_videos += 1
+                        stats = getattr(t, 'analytics', None)
+                        if isinstance(stats, dict):
+                            total_detected += int(stats.get('total_detected_vehicles', 0))
+                            total_violations += int(stats.get('total_violations', 0))
+                            dur = float(stats.get('duration_seconds', 0))
+                            if dur > 0:
+                                durations.append(dur)
+                except Exception:
+                    pass
+
+                # Fallback: count violations by scanning output folder
+                try:
+                    violations_dir = Path.cwd() / 'data' / 'outputs' / 'violations'
+                    if violations_dir.exists():
+                        unique_keys = set()
+                        for task_dir in violations_dir.iterdir():
+                            if not task_dir.is_dir():
+                                continue
+                            for f in task_dir.iterdir():
+                                name = f.name
+                                if not name.startswith('violation_crop'):
+                                    continue
+                                import re
+                                track_m = re.search(r'track(\d+)', name)
+                                frame_m = re.search(r'frame(\d+)', name)
+                                key = (task_dir.name, track_m.group(1) if track_m else None, frame_m.group(1) if frame_m else None)
+                                unique_keys.add(key)
+                        total_violations = len(unique_keys)
+                except Exception:
+                    pass
+
+                avg_process_time = (sum(durations) / len(durations)) if durations else 0.0
+
                 return jsonify({
                     'status': 'online',
                     'timestamp': datetime.now().isoformat(),
-                    'tasks_count': len(self.tasks),
-                    'active_tasks': len([t for t in self.tasks.values() if t.status == 'processing'])
+                    'tasks_count': tasks_count,
+                    'active_tasks': active_tasks,
+                    'total_detected_vehicles': total_detected,
+                    'total_violations': total_violations,
+                    'processed_videos': processed_videos,
+                    'avg_process_time_seconds': avg_process_time
                 })
             except Exception as e:
                 Logger.error(f"Status error: {str(e)}")
@@ -608,6 +880,383 @@ class WebServer:
             except Exception as e:
                 Logger.error(f"Delete zone error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/violations', methods=['GET'])
+        def list_violations():
+            """List available violations with vehicle classification"""
+            try:
+                task_filter = request.args.get('task')
+                start_date = request.args.get('start_date')
+                end_date = request.args.get('end_date')
+
+                base = Path.cwd() / 'data' / 'outputs' / 'violations'
+                if not base.exists():
+                    return jsonify({'violations': []})
+
+                violations = []
+                seen_violations = set()  # Track to avoid duplicates (crop + full)
+                
+                for task_dir in base.iterdir():
+                    if not task_dir.is_dir():
+                        continue
+                    task_id = task_dir.name
+                    if task_filter and task_filter != task_id:
+                        continue
+
+                    for file in task_dir.iterdir():
+                        if not file.is_file():
+                            continue
+                        name = file.name
+                        # Only process violation_crop to avoid duplicate entries (full images are for PDF)
+                        if not name.startswith('violation_crop'):
+                            continue
+
+                        # Parse track_id, vehicle_type, and frame number from filename
+                        # Format: violation_crop_track{track_id}_{vehicle_type}_frame{frame_num}.jpg
+                        track_id = None
+                        vehicle_type = 'Xe khác'
+                        frame = None
+                        try:
+                            import re
+                            track_m = re.search(r'track(\d+)', name)
+                            vtype_m = re.search(r'track\d+_(\w+)_frame', name)
+                            frame_m = re.search(r'frame(\d+)', name)
+                            
+                            if track_m:
+                                track_id = int(track_m.group(1))
+                            if frame_m:
+                                frame = int(frame_m.group(1))
+                            
+                            # Map vehicle type code to Vietnamese
+                            if vtype_m:
+                                vtype_code = vtype_m.group(1).lower()
+                                vtype_map = {
+                                    'otto': 'Ô tô',
+                                    'xemay': 'Xe máy',
+                                    'xebuyt': 'Xe buýt',
+                                    'xetai': 'Xe tải',
+                                    'khac': 'Xe khác'
+                                }
+                                vehicle_type = vtype_map.get(vtype_code, 'Xe khác')
+                        except Exception:
+                            pass
+
+                        # Create unique key to avoid duplicate entries
+                        violation_key = f"{task_id}_{track_id}_{frame}"
+                        if violation_key in seen_violations:
+                            continue
+                        seen_violations.add(violation_key)
+
+                        mtime = datetime.fromtimestamp(file.stat().st_mtime).isoformat()
+
+                        violations.append({
+                            'id': name,
+                            'task_id': task_id,
+                            'filename': name,
+                            'track_id': track_id,
+                            'frame': frame,
+                            'timestamp': mtime,
+                            'vehicle_type': vehicle_type,
+                            'zone_name': 'Zone 1',
+                            'violation_type': 'Vi phạm làn đường',
+                            'confidence': 0.92,
+                            'snapshot_url': f'/api/violation-snapshot/{task_id}/{name}'
+                        })
+
+                # Optional date filtering
+                if start_date or end_date:
+                    def in_range(v):
+                        ts = v.get('timestamp')
+                        if not ts:
+                            return False
+                        try:
+                            t = datetime.fromisoformat(ts)
+                        except Exception:
+                            return False
+                        if start_date:
+                            try:
+                                if t < datetime.fromisoformat(start_date):
+                                    return False
+                            except Exception:
+                                pass
+                        if end_date:
+                            try:
+                                if t > datetime.fromisoformat(end_date):
+                                    return False
+                            except Exception:
+                                pass
+                        return True
+
+                    violations = [v for v in violations if in_range(v)]
+
+                return jsonify({'violations': violations})
+            except Exception as e:
+                Logger.error(f"List violations error: {e}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/export/csv', methods=['GET'])
+        def export_csv():
+            """Export violations metadata as CSV"""
+            try:
+                # Reuse list_violations logic by calling functionally
+                resp = list_violations()
+                if resp.status_code != 200:
+                    return resp
+                data = resp.get_json()
+                rows = data.get('violations', [])
+
+                output = io.StringIO()
+                writer = csv.writer(output)
+                writer.writerow(['id', 'task_id', 'filename', 'frame', 'timestamp', 'vehicle_type', 'zone_name', 'violation_type', 'confidence', 'snapshot_url'])
+                for r in rows:
+                    writer.writerow([
+                        r.get('id'), r.get('task_id'), r.get('filename'), r.get('frame'), r.get('timestamp'),
+                        r.get('vehicle_type'), r.get('zone_name'), r.get('violation_type'), r.get('confidence'), r.get('snapshot_url')
+                    ])
+
+                mem = io.BytesIO()
+                mem.write(output.getvalue().encode('utf-8'))
+                mem.seek(0)
+                return send_file(mem, as_attachment=True, download_name='violations.csv', mimetype='text/csv')
+            except Exception as e:
+                Logger.error(f"Export CSV error: {e}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/export/pdf', methods=['GET'])
+        def export_pdf():
+            """Export violation full-size images into a single PDF"""
+            try:
+                pdf_data = self._generate_violations_pdf()
+                if not pdf_data:
+                    return jsonify({'error': 'No violations found'}), 404
+                
+                mem = io.BytesIO(pdf_data)
+                mem.seek(0)
+                return send_file(mem, as_attachment=True, download_name='violations.pdf', mimetype='application/pdf')
+            except Exception as e:
+                Logger.error(f"Export PDF error: {e}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/export/clips', methods=['GET'])
+        def export_clips():
+            """Export all violation crop images as a ZIP"""
+            try:
+                export_format = request.args.get('format', 'crop').lower().strip()
+                base = Path.cwd() / 'data' / 'outputs' / 'violations'
+                if not base.exists():
+                    return jsonify({'error': 'No violations found'}), 404
+
+                prefix_map = {
+                    'crop': 'violation_crop',
+                    'full': 'violation_full'
+                }
+                prefix = prefix_map.get(export_format, 'violation_crop')
+                download_name = 'violation_clips_crop.zip' if prefix == 'violation_crop' else 'violation_clips_full.zip'
+
+                mem = io.BytesIO()
+                with zipfile.ZipFile(mem, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for task_dir in base.iterdir():
+                        if not task_dir.is_dir():
+                            continue
+                        for file in task_dir.iterdir():
+                            if file.is_file() and file.name.startswith(prefix):
+                                arcname = f"{task_dir.name}/{file.name}"
+                                zf.write(str(file), arcname)
+
+                mem.seek(0)
+                return send_file(mem, as_attachment=True, download_name=download_name, mimetype='application/zip')
+            except Exception as e:
+                Logger.error(f"Export clips error: {e}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/export/video-clips', methods=['GET'])
+        def export_video_clips():
+            """Export violation video clips (5s each) from source videos"""
+            try:
+                clip_duration = 5  # 5 seconds per clip
+                base = Path.cwd() / 'data' / 'outputs' / 'violations'
+                videos_dir = Path.cwd() / 'data' / 'videos'
+                
+                if not base.exists():
+                    return jsonify({'error': 'No violations found'}), 404
+
+                mem = io.BytesIO()
+                with zipfile.ZipFile(mem, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    clip_count = 0
+                    
+                    # Scan all violations and extract their metadata
+                    for task_dir in base.iterdir():
+                        if not task_dir.is_dir():
+                            continue
+                        
+                        task_id = task_dir.name
+                        
+                        # Find the source video for this task
+                        source_video = None
+                        for task_obj_id, task_obj in self.tasks.items():
+                            if task_obj_id == task_id:
+                                source_video = task_obj.input_path
+                                break
+                        
+                        if not source_video or not Path(source_video).exists():
+                            # Try to find video by pattern
+                            for vid_file in videos_dir.glob('*.mp4'):
+                                if task_id in vid_file.name:
+                                    source_video = str(vid_file)
+                                    break
+                        
+                        if not source_video or not Path(source_video).exists():
+                            # Try to use any available video
+                            available_videos = list(videos_dir.glob('*.mp4'))
+                            if available_videos:
+                                source_video = str(available_videos[0])
+                                Logger.info(f"Source video not in task object, using available: {source_video}")
+                            else:
+                                Logger.warning(f"Source video not found for task {task_id}")
+                                continue
+                        
+                        # Process each violation image to extract frame info
+                        # Use violation_full for better quality
+                        for file in sorted(task_dir.iterdir()):
+                            if not file.is_file() or not file.name.startswith('violation_full'):
+                                continue
+                            
+                            # Parse frame number from filename (e.g., violation_crop_frame245_...)
+                            frame_num = None
+                            import re
+                            m = re.search(r'frame(\d+)', file.name)
+                            if m:
+                                frame_num = int(m.group(1))
+                            
+                            if frame_num is None:
+                                Logger.warning(f"Could not extract frame number from {file.name}")
+                                continue
+                            
+                            try:
+                                # Open source video and extract clip around this frame
+                                cap = cv2.VideoCapture(str(source_video))
+                                if not cap.isOpened():
+                                    Logger.warning(f"Cannot open video: {source_video}")
+                                    continue
+                                
+                                fps = cap.get(cv2.CAP_PROP_FPS) or 30
+                                frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+                                frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                                fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+                                
+                                # Calculate start/end frames (2.5s before and after violation)
+                                frames_before = int(2.5 * fps)
+                                frames_after = int(2.5 * fps)
+                                start_frame = max(0, frame_num - frames_before)
+                                end_frame = frame_num + frames_after
+                                
+                                # Temp output file for this clip
+                                clip_name = f"clip_{task_id}_{file.name.replace('.jpg', '.mp4')}"
+                                temp_clip_path = Path.cwd() / 'data' / 'outputs' / clip_name
+                                
+                                writer = cv2.VideoWriter(str(temp_clip_path), fourcc, fps, (frame_width, frame_height))
+                                
+                                # Extract frames
+                                cap.set(cv2.CAP_PROP_POS_FRAMES, start_frame)
+                                current_frame = start_frame
+                                frames_written = 0
+                                
+                                while current_frame <= end_frame:
+                                    ret, frame = cap.read()
+                                    if not ret:
+                                        break
+                                    writer.write(frame)
+                                    current_frame += 1
+                                    frames_written += 1
+                                
+                                cap.release()
+                                writer.release()
+                                
+                                # Add to ZIP
+                                if temp_clip_path.exists() and frames_written > 0:
+                                    arcname = f"violations/{task_id}/{clip_name}"
+                                    zf.write(str(temp_clip_path), arcname)
+                                    temp_clip_path.unlink()  # Delete temp file
+                                    clip_count += 1
+                                    Logger.info(f"Added video clip: {arcname} ({frames_written} frames)")
+                                else:
+                                    if temp_clip_path.exists():
+                                        temp_clip_path.unlink()
+                                    Logger.warning(f"Failed to create clip for frame {frame_num}")
+                            
+                            except Exception as e:
+                                Logger.warning(f"Error creating clip for {file.name}: {e}")
+                                continue
+                
+                if clip_count == 0:
+                    return jsonify({'error': 'No video clips could be generated'}), 404
+                
+                mem.seek(0)
+                return send_file(mem, as_attachment=True, download_name='violation_video_clips.zip', mimetype='application/zip')
+            except Exception as e:
+                Logger.error(f"Export video clips error: {e}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/export/full', methods=['GET'])
+        def export_full():
+            """Export full-size violation images and result videos as ZIP"""
+            try:
+                base = Path.cwd() / 'data' / 'outputs'
+                if not base.exists():
+                    return jsonify({'error': 'No outputs found'}), 404
+
+                mem = io.BytesIO()
+                with zipfile.ZipFile(mem, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    # --- CSV report ---
+                    try:
+                        # Reuse list_violations logic to get rows
+                        resp = list_violations()
+                        if hasattr(resp, 'status_code') and resp.status_code != 200:
+                            return resp
+                        data = resp.get_json()
+                        rows = data.get('violations', []) if isinstance(data, dict) else []
+
+                        output = io.StringIO()
+                        writer = csv.writer(output)
+                        writer.writerow(['id', 'task_id', 'filename', 'track_id', 'frame', 'timestamp', 'vehicle_type', 'zone_name', 'violation_type', 'confidence', 'snapshot_url'])
+                        for r in rows:
+                            writer.writerow([
+                                r.get('id'), r.get('task_id'), r.get('filename'), r.get('track_id'), r.get('frame'), r.get('timestamp'),
+                                r.get('vehicle_type'), r.get('zone_name'), r.get('violation_type'), r.get('confidence'), r.get('snapshot_url')
+                            ])
+                        zf.writestr('reports/violations.csv', output.getvalue())
+                    except Exception as csv_err:
+                        Logger.warning(f"Full export: failed to generate CSV: {csv_err}")
+
+                    # --- PDF report (reuse export_pdf logic) ---
+                    try:
+                        pdf_data = self._generate_violations_pdf()
+                        if pdf_data:
+                            zf.writestr('reports/violations.pdf', pdf_data)
+                    except Exception as pdf_err:
+                        Logger.warning(f"Full export: failed to generate PDF: {pdf_err}")
+
+                    # Add full violation images
+                    vdir = base / 'violations'
+                    if vdir.exists():
+                        for task_dir in vdir.iterdir():
+                            if not task_dir.is_dir():
+                                continue
+                            for file in task_dir.iterdir():
+                                if file.is_file() and file.name.startswith('violation_full'):
+                                    arcname = f"violations/{task_dir.name}/{file.name}"
+                                    zf.write(str(file), arcname)
+
+                    # Add result videos
+                    for file in base.iterdir():
+                        if file.is_file() and (file.name.endswith('_result.mp4') or file.name.endswith('_result.avi')):
+                            zf.write(str(file), f"videos/{file.name}")
+
+                mem.seek(0)
+                return send_file(mem, as_attachment=True, download_name='full_report.zip', mimetype='application/zip')
+            except Exception as e:
+                Logger.error(f"Export full error: {e}")
+                return jsonify({'error': str(e)}), 500
     
     def _allowed_file(self, filename):
         """Check if file type is allowed"""
@@ -923,3 +1572,7 @@ def create_app(config_path='configs/config.yaml', port=5000):
     """Create and configure Flask app"""
     server = WebServer(config_path, port)
     return server.app, server
+
+if __name__ == '__main__':
+    server = WebServer()
+    server.run(debug=False)

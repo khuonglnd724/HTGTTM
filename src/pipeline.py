@@ -281,9 +281,24 @@ class LaneViolationPipeline:
                                 save_dir = out_base / subdir
                                 save_dir.mkdir(parents=True, exist_ok=True)
 
+                                # Get vehicle class name from detection
+                                detection = violation.get('detection') or {}
+                                class_id = int(detection.get('class_id', -1)) if detection.get('class_id') is not None else -1
+                                class_name = detection.get('class_name', 'unknown')
+                                
+                                # Map YOLO class_id to Vietnamese vehicle names
+                                # COCO classes: 2=car, 3=motorcycle, 5=bus, 7=truck
+                                vehicle_type_map = {
+                                    2: 'otto',      # car
+                                    3: 'xemay',     # motorcycle
+                                    5: 'xebuyt',    # bus
+                                    7: 'xetai'      # truck
+                                }
+                                vehicle_type = vehicle_type_map.get(class_id, 'khac')
+
                                 # Create annotated full-frame for snapshot (use current frame)
                                 annotated = self.draw_results(frame, results)
-                                filename_full = f"violation_full_track{track_id}_frame{frame_num}.jpg"
+                                filename_full = f"violation_full_track{track_id}_{vehicle_type}_frame{frame_num}.jpg"
                                 out_path_full = save_dir / filename_full
                                 cv2.imwrite(str(out_path_full), annotated)
                                 rel_url_full = f"/api/violation-snapshot/{subdir}/{filename_full}"
@@ -303,7 +318,6 @@ class LaneViolationPipeline:
                                     crop_frame_num = frame_num
 
                                 # Crop vehicle box from crop_source using detection bbox if available
-                                detection = violation.get('detection') or {}
                                 box = detection.get('box') if detection else None
                                 crop_url = None
                                 meta_bbox = None
@@ -322,7 +336,7 @@ class LaneViolationPipeline:
 
                                     try:
                                         crop = crop_source[cy1:cy2, cx1:cx2]
-                                        filename_crop = f"violation_crop_track{track_id}_frame{crop_frame_num}.jpg"
+                                        filename_crop = f"violation_crop_track{track_id}_{vehicle_type}_frame{crop_frame_num}.jpg"
                                         out_path_crop = save_dir / filename_crop
                                         cv2.imwrite(str(out_path_crop), crop)
                                         rel_url_crop = f"/api/violation-snapshot/{subdir}/{filename_crop}"

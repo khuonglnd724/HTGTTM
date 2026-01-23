@@ -257,7 +257,7 @@ class ZoneEditor {
             name: name,
             polygon: validPolygon,
             allowed_classes: allowedClasses,
-            color: [b, g, r],
+            color: [r, g, b],
             // Save the canvas base size used when drawing to enable backend rescaling
             base_width: this.canvas.width,
             base_height: this.canvas.height
@@ -329,7 +329,7 @@ class ZoneEditor {
                                style="margin-right: 8px; cursor: pointer; width: 18px; height: 18px;">
                         <span class="zone-item-name">${zone.name}</span>
                         <div class="zone-item-actions">
-                            <button class="btn btn-danger small" onclick="zoneEditor.deleteZone('${zoneId}')">
+                            <button class="btn btn-danger small" onclick="window.zoneEditor.deleteZone('${zoneId}')">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
@@ -380,18 +380,24 @@ class ZoneEditor {
     }
 }
 
-// Initialize when zones button is clicked
-let zoneEditor;
-document.addEventListener('DOMContentLoaded', () => {
-    const zonesBtn = document.querySelector('[data-section="zones"]');
-    if (zonesBtn) {
-        zonesBtn.addEventListener('click', () => {
-            const taskId = (window.AppState && window.AppState.currentTaskId) ? window.AppState.currentTaskId : null;
-            console.log(`Zones clicked, taskId: ${taskId}`);
-            
-            if (!zoneEditor || zoneEditor.taskId !== taskId) {
-                zoneEditor = new ZoneEditor(taskId);
+// Hook into zone section visibility (UI.showSection is called after menu click)
+function initializeZoneEditorOnDisplay() {
+    // Called by app.js when zones section is shown
+    const taskId = (window.AppState && window.AppState.currentTaskId) ? window.AppState.currentTaskId : null;
+    console.log(`Initializing ZoneEditor for taskId: ${taskId}`);
+    
+    if (!window.zoneEditor || window.zoneEditor.taskId !== taskId) {
+        try {
+            window.zoneEditor = new ZoneEditor(taskId);
+            console.log('ZoneEditor initialized successfully');
+        } catch (error) {
+            console.error('Error initializing ZoneEditor:', error);
+            if (typeof UI !== 'undefined') {
+                UI.showToast(`Lỗi khởi tạo quản lý vùng: ${error.message}`, 'error');
             }
-        });
+        }
     }
-});
+}
+
+// Make function available globally
+window.initializeZoneEditorOnDisplay = initializeZoneEditorOnDisplay;

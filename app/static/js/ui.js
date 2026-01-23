@@ -41,8 +41,8 @@ class UI {
         const modalBody = document.getElementById('modalBody');
         const downloadBtn = document.getElementById('downloadBtn');
 
-        modalTitle.textContent = title;
-        modalBody.innerHTML = content;
+        if (modalTitle) modalTitle.textContent = title;
+        if (modalBody) modalBody.innerHTML = content;
 
         if (onDownload) {
             downloadBtn.classList.remove('hidden');
@@ -51,7 +51,7 @@ class UI {
             downloadBtn.classList.add('hidden');
         }
 
-        modal.classList.remove('hidden');
+        if (modal) modal.classList.remove('hidden');
     }
 
     static closeModal() {
