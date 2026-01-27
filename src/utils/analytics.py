@@ -19,6 +19,8 @@ class AnalyticsCollector:
         self.end_time = None
         # Track unique detected vehicle IDs (to compute total detected vehicles)
         self.seen_vehicles = set()
+        # Track confidence scores for average calculation
+        self.confidence_scores = []
     
     def record_frame_data(self, frame_num: int, num_detections: int, 
                          num_violations: int):
@@ -44,12 +46,21 @@ class AnalyticsCollector:
         """Record a violation for a vehicle"""
         self.violations_per_vehicle[track_id] += 1
 
-    def record_detection(self, track_id: int):
+    def record_detection(self, track_id: int, confidence: float = None):
         """Record that a vehicle (by track id) was detected at least once"""
         try:
             self.seen_vehicles.add(int(track_id))
         except Exception:
             self.seen_vehicles.add(track_id)
+        
+        # Track confidence score if provided
+        if confidence is not None:
+            try:
+                conf_val = float(confidence)
+                if 0 <= conf_val <= 1:
+                    self.confidence_scores.append(conf_val)
+            except (ValueError, TypeError):
+                pass
     
     def start_timing(self):
         """Start timing"""
@@ -68,19 +79,25 @@ class AnalyticsCollector:
     def get_statistics(self) -> Dict:
         """Get all statistics"""
         total_detections = sum(d['count'] for d in self.detections_per_frame)
-        total_violations = sum(v['count'] for v in self.violations_per_frame)
+        # total_violations = số lần phát hiện vi phạm (cộng theo frame)
+        total_violations_frames = sum(v['count'] for v in self.violations_per_frame)
         # total detected unique vehicles
         total_detected_vehicles = len(self.seen_vehicles)
         # total vehicles that committed violations (tracked in violations_per_vehicle)
         violating_vehicles = len([v for v in self.violations_per_vehicle.values() if v > 0])
+        # total_violations = số lượng xe vi phạm duy nhất
+        total_violations = violating_vehicles
         # For backward-compat, set total_vehicles to total_detected_vehicles
         total_vehicles = total_detected_vehicles
+        
+        # Calculate average confidence
+        avg_confidence = (sum(self.confidence_scores) / len(self.confidence_scores)) if self.confidence_scores else 0
         
         duration = self.get_duration()
         fps = self.frames_processed / duration if duration > 0 else 0
         
         avg_detections = total_detections / self.frames_processed if self.frames_processed > 0 else 0
-        avg_violations = total_violations / self.frames_processed if self.frames_processed > 0 else 0
+        avg_violations = total_violations_frames / self.frames_processed if self.frames_processed > 0 else 0
         
         return {
             'frames_processed': self.frames_processed,
@@ -89,11 +106,13 @@ class AnalyticsCollector:
             'total_detections': total_detections,
             'avg_detections_per_frame': avg_detections,
             'total_violations': total_violations,
+            'total_violations_frames': total_violations_frames,
             'avg_violations_per_frame': avg_violations,
             'total_vehicles': total_vehicles,
             'total_detected_vehicles': total_detected_vehicles,
             'violating_vehicles': violating_vehicles,
             'violation_rate': (violating_vehicles / total_vehicles) if total_vehicles > 0 else 0,
+            'avg_confidence': avg_confidence,
             'violations_per_vehicle': dict(self.violations_per_vehicle),
             'top_violators': sorted(self.violations_per_vehicle.items(), 
                                    key=lambda x: x[1], reverse=True)[:10]

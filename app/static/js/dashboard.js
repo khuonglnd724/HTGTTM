@@ -7,7 +7,8 @@ class Dashboard {
         this.stats = {
             totalVehicles: 0,
             totalViolations: 0,
-            accuracy: 95.2,
+            accuracy: 0,
+            avgConfidence: 0,
             processedVideos: 0
         };
         
@@ -333,12 +334,15 @@ class Dashboard {
                 const violations = violationsData.violations || [];
                 this.stats.totalViolations = violations.length;
                 
-                // Calculate average confidence
+                // Calculate average confidence (from detection confidences)
                 if (violations.length > 0) {
                     const totalConfidence = violations.reduce((sum, v) => sum + (v.confidence || 0), 0);
                     this.stats.avgConfidence = (totalConfidence / violations.length) * 100;
+                    // Update accuracy based on actual detections
+                    this.stats.accuracy = this.stats.avgConfidence;
                 } else {
                     this.stats.avgConfidence = 0;
+                    this.stats.accuracy = 0;
                 }
 
                 // Find most common violation type

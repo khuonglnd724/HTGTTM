@@ -17,7 +17,10 @@ class ZoneEditor {
         
         // Load preview image from global state
         if (window.AppState && window.AppState.previewUrl) {
+            console.log('AppState found, loading preview:', window.AppState.previewUrl);
             this.loadPreviewImage(window.AppState.previewUrl);
+        } else {
+            console.warn('No AppState or previewUrl found at initialization');
         }
         
         // Load zones for this task
@@ -53,16 +56,23 @@ class ZoneEditor {
 
     loadPreviewImage(previewUrl) {
         console.log('Loading preview from:', previewUrl);
+        
+        if (!previewUrl) {
+            console.warn('No preview URL provided');
+            return;
+        }
+        
         const img = new Image();
         
         img.onload = () => {
-            console.log('Preview loaded OK');
+            console.log('Preview loaded successfully. Size:', img.width, 'x', img.height);
             this.backgroundImage = img;
             this.redraw();
         };
         
         img.onerror = (err) => {
-            console.error('Failed to load preview:', err);
+            console.error('Failed to load preview image:', err);
+            console.error('Preview URL was:', previewUrl);
         };
         
         img.src = previewUrl;

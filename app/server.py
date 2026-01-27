@@ -311,31 +311,11 @@ class WebServer:
                         stats = getattr(t, 'analytics', None)
                         if isinstance(stats, dict):
                             total_detected += int(stats.get('total_detected_vehicles', 0))
+                            # Chỉ lấy từ analytics, không đếm lại từ file để tránh trùng
                             total_violations += int(stats.get('total_violations', 0))
                             dur = float(stats.get('duration_seconds', 0))
                             if dur > 0:
                                 durations.append(dur)
-                except Exception:
-                    pass
-
-                # Fallback: count violations by scanning output folder
-                try:
-                    violations_dir = Path.cwd() / 'data' / 'outputs' / 'violations'
-                    if violations_dir.exists():
-                        unique_keys = set()
-                        for task_dir in violations_dir.iterdir():
-                            if not task_dir.is_dir():
-                                continue
-                            for f in task_dir.iterdir():
-                                name = f.name
-                                if not name.startswith('violation_crop'):
-                                    continue
-                                import re
-                                track_m = re.search(r'track(\d+)', name)
-                                frame_m = re.search(r'frame(\d+)', name)
-                                key = (task_dir.name, track_m.group(1) if track_m else None, frame_m.group(1) if frame_m else None)
-                                unique_keys.add(key)
-                        total_violations = len(unique_keys)
                 except Exception:
                     pass
 
@@ -382,19 +362,34 @@ class WebServer:
                 
                 Logger.info(f"File uploaded: {filename}")
                 
+                # Determine file type
+                file_ext = Path(filename).suffix.lower()
+                is_image = file_ext in ['.jpg', '.jpeg', '.png']
+                task_type = 'image' if is_image else 'video'
+                
                 # Extract first frame for zone drawing
                 frame_preview_path = None
                 try:
-                    video = cv2.VideoCapture(str(filepath))
-                    if video.isOpened():
-                        ret, frame = video.read()
-                        if ret:
-                            # Resize to fit browser
+                    if is_image:
+                        # For images, just resize and use as preview
+                        frame = cv2.imread(str(filepath))
+                        if frame is not None:
                             frame_resized = cv2.resize(frame, (1280, 720))
                             frame_preview_path = str(upload_dir / f"{filename}_preview.jpg")
                             cv2.imwrite(frame_preview_path, frame_resized)
-                            Logger.info(f"Frame preview saved: {frame_preview_path}")
-                        video.release()
+                            Logger.info(f"Image preview saved: {frame_preview_path}")
+                    else:
+                        # For videos, extract first frame
+                        video = cv2.VideoCapture(str(filepath))
+                        if video.isOpened():
+                            ret, frame = video.read()
+                            if ret:
+                                # Resize to fit browser
+                                frame_resized = cv2.resize(frame, (1280, 720))
+                                frame_preview_path = str(upload_dir / f"{filename}_preview.jpg")
+                                cv2.imwrite(frame_preview_path, frame_resized)
+                                Logger.info(f"Frame preview saved: {frame_preview_path}")
+                            video.release()
                 except Exception as e:
                     Logger.warning(f"Error extracting frame preview: {str(e)}")
                 
@@ -406,16 +401,19 @@ class WebServer:
                 task_dir = Path(self.app.config['UPLOAD_FOLDER']).parent / 'tasks' / task_id
                 task_dir.mkdir(parents=True, exist_ok=True)
                 
-                task = ProcessingTask(task_id, str(filepath), task_type='video')
+                task = ProcessingTask(task_id, str(filepath), task_type=task_type)
                 self.tasks[task_id] = task
                 
                 Logger.info(f"Task created during upload: {task_id}")
+                
+                # Get preview filename for URL (encode special characters)
+                preview_filename = f"{filename}_preview.jpg" if frame_preview_path else None
                 
                 return jsonify({
                     'success': True,
                     'filename': filename,
                     'filepath': str(filepath),
-                    'preview_url': f'/api/preview/{filename}_preview.jpg' if frame_preview_path else None,
+                    'preview_url': f'/api/preview/{preview_filename}' if preview_filename else None,
                     'task_id': task_id
                 })
             
@@ -467,11 +465,15 @@ class WebServer:
                     Logger.error(f"Preview not found: {preview_path}")
                     return jsonify({'error': 'Preview not found'}), 404
                 
-                return send_file(
+                response = send_file(
                     str(preview_path),
                     mimetype='image/jpeg',
                     as_attachment=False
                 )
+                # Add CORS and cache headers
+                response.headers['Access-Control-Allow-Origin'] = '*'
+                response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+                return response
             except Exception as e:
                 Logger.error(f"Preview error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
@@ -681,6 +683,25 @@ class WebServer:
             
             except Exception as e:
                 Logger.error(f"Get tasks error: {str(e)}")
+                return jsonify({'error': str(e)}), 500
+
+        @self.app.route('/api/tasks/clear', methods=['POST'])
+        def clear_all_tasks():
+            """Clear all tasks and reset statistics"""
+            try:
+                # Clear tasks dictionary
+                self.tasks.clear()
+                self.task_counter = 0
+                
+                Logger.info("All tasks cleared and statistics reset")
+                
+                return jsonify({
+                    'success': True,
+                    'message': 'Đã xóa tất cả tasks và reset thống kê'
+                })
+            
+            except Exception as e:
+                Logger.error(f"Clear tasks error: {str(e)}")
                 return jsonify({'error': str(e)}), 500
 
         @self.app.route('/api/violation-snapshot/<task_subdir>/<filename>', methods=['GET'])
@@ -1393,11 +1414,12 @@ class WebServer:
                     try:
                         for det in results.get('detections', []):
                             tid = det.get('track_id')
+                            conf = det.get('confidence', 0)
                             if tid is not None:
                                 try:
-                                    analytics.record_detection(int(tid))
+                                    analytics.record_detection(int(tid), conf)
                                 except Exception:
-                                    analytics.record_detection(tid)
+                                    analytics.record_detection(tid, conf)
                     except Exception:
                         pass
 
@@ -1427,11 +1449,12 @@ class WebServer:
                         try:
                             for det in results.get('detections', []):
                                 tid = det.get('track_id')
+                                conf = det.get('confidence', 0)
                                 if tid is not None:
                                     try:
-                                        analytics.record_detection(int(tid))
+                                        analytics.record_detection(int(tid), conf)
                                     except Exception:
-                                        analytics.record_detection(tid)
+                                        analytics.record_detection(tid, conf)
                         except Exception:
                             pass
 

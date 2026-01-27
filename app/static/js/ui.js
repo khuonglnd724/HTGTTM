@@ -79,13 +79,20 @@ class UI {
             'failed': 'failed'
         };
 
+        const statusText = {
+            'queued': 'CHỜ',
+            'processing': 'ĐANG XỬ LÝ',
+            'completed': 'HOÀN THÀNH',
+            'failed': 'THẤT BẠI'
+        };
+
         const progressPercent = task.progress || 0;
 
         return `
             <div class="task-card">
                         <div class="task-header">
                     <div class="task-title">${task.task_id}</div>
-                    <div class="task-status ${statusColor[task.status]}">${task.status.toUpperCase()}</div>
+                    <div class="task-status ${statusColor[task.status]}">${statusText[task.status] || task.status.toUpperCase()}</div>
                 </div>
                 ${task.status === 'processing' ? `
                     <div class="task-progress">
@@ -126,13 +133,18 @@ class UI {
             'failed': 'danger'
         };
 
+        const statusText = {
+            'completed': 'HOÀN THÀNH',
+            'failed': 'THẤT BẠI'
+        };
+
         const hasVideo = task.result && task.result.stream_url;
 
         return `
             <div class="task-card">
                 <div class="task-header">
                     <div class="task-title">${task.task_id}</div>
-                    <div class="task-status ${statusColor[task.status]}">${task.status.toUpperCase()}</div>
+                    <div class="task-status ${statusColor[task.status]}">${statusText[task.status] || task.status.toUpperCase()}</div>
                 </div>
                 <div class="task-info">
                     <div class="task-info-item">

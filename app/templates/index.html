@@ -40,7 +40,7 @@
             <div class="sidebar-menu">
                 <button class="menu-btn active" data-section="dashboard">
                     <i class="fas fa-chart-line"></i>
-                    <span>Dashboard</span>
+                    <span>Bảng điều khiển</span>
                 </button>
                 <button class="menu-btn" data-section="upload">
                     <i class="fas fa-cloud-upload-alt"></i>
@@ -78,7 +78,7 @@
             <!-- Dashboard Section -->
             <section id="dashboard-section" class="content-section active">
                 <div class="dashboard-header">
-                    <h2><i class="fas fa-chart-line"></i> Dashboard Tổng Quan</h2>
+                    <h2><i class="fas fa-chart-line"></i> Bảng Điều Khiển Tổng Quan</h2>
                     <p class="section-subtitle">Giám sát hệ thống phát hiện vi phạm làn giao thông thông minh</p>
                 </div>
 
@@ -330,7 +330,12 @@
 
                     <!-- Right: Statistics -->
                     <div class="results-stats-panel">
-                        <h3>Thống kê</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3>Thống kê</h3>
+                            <button id="resetStatsBtn" class="btn btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
                         <div class="results-stats-card">
                             <div class="results-stat-item">
                                 <div class="results-stat-label">Tổng xe đếm được</div>
@@ -654,7 +659,7 @@
                             <label for="settingsDevice">Thiết bị</label>
                             <select id="settingsDevice">
                                 <option value="cuda">GPU (CUDA)</option>
-                                <option value="cpu">CPU</option>
+                                <option value="cpu">CPU (Bộ xử lý)</option>
                             </select>
                         </div>
                     </div>
@@ -662,17 +667,17 @@
                     <div class="settings-group">
                         <h3>Cài đặt phát hiện làn</h3>
                         <div class="form-group">
-                            <label for="settingsCanny1">Canny Threshold Low</label>
+                            <label for="settingsCanny1">Ngưỡng Canny Thấp</label>
                             <input type="number" id="settingsCanny1" value="50">
                         </div>
 
                         <div class="form-group">
-                            <label for="settingsCanny2">Canny Threshold High</label>
+                            <label for="settingsCanny2">Ngưỡng Canny Cao</label>
                             <input type="number" id="settingsCanny2" value="150">
                         </div>
 
                         <div class="form-group">
-                            <label for="settingsHough">Hough Threshold</label>
+                            <label for="settingsHough">Ngưỡng Hough</label>
                             <input type="number" id="settingsHough" value="50">
                         </div>
                     </div>

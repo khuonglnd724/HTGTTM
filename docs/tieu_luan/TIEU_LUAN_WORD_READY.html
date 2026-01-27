@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tiểu luận Hệ thống Giao thông Thông minh</title>
+    <style>
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            line-height: 1.5;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px;
+            color: #000;
+            background-color: #fff;
+        }
+        h1 {
+            text-align: center;
+            font-size: 18pt;
+            font-weight: bold;
+            margin: 20px 0;
+            text-transform: uppercase;
+        }
+        h2 {
+            text-align: left;
+            font-size: 14pt;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 10px;
+            text-decoration: underline;
+        }
+        h3 {
+            font-size: 12pt;
+            font-weight: bold;
+            margin-top: 12px;
+            margin-bottom: 8px;
+        }
+        p {
+            text-align: justify;
+            font-size: 12pt;
+            margin: 10px 0;
+            text-indent: 2cm;
+        }
+        .center {
+            text-align: center;
+        }
+        .no-indent {
+            text-indent: 0;
+        }
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 10px;
+        }
+        li {
+            margin: 5px 0;
+            text-align: justify;
+        }
+        .section-break {
+            page-break-after: always;
+            margin: 30px 0;
+            border-top: 1px solid #ccc;
+            padding-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        th, td {
+            border: 1px solid #000;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f0f0f0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h1>TIỂU LUẬN MÔN HỌC</h1>
+<h1 style="font-size: 16pt;">HỆ THỐNG GIAO THÔNG THÔNG MINH</h1>
+
+<hr style="margin: 30px 0;">
+
+<h1 style="font-size: 14pt;">ĐỀ TÀI:</h1>
+<h1 style="font-size: 14pt;">HỆ THỐNG NHẬN DIỆN CÁC PHƯƠNG TIỆN SAI LÀN TRONG THAM GIA GIAO THÔNG</h1>
+
+<hr style="margin: 30px 0;">
+
+<p class="no-indent"><strong>Giảng viên hướng dẫn:</strong> [Tên giảng viên]</p>
+<p class="no-indent"><strong>Sinh viên thực hiện:</strong> [Tên sinh viên]</p>
+<p class="no-indent"><strong>Mã số sinh viên:</strong> [Mã số]</p>
+<p class="no-indent"><strong>Lớp:</strong> [Lớp]</p>
+<p class="no-indent"><strong>Thời gian thực hiện:</strong> Học kỳ 1 - Năm học 2025-2026</p>
+
+<div class="section-break"></div>
+
+<h2>MỤC LỤC</h2>
+
+<ol class="no-indent">
+    <li>Lời mở đầu</li>
+    <li>Chương 1: Mở đầu</li>
+    <li>Chương 2: Tổng quan về hệ thống giao thông thông minh</li>
+    <li>Chương 3: Bài toán nhận diện phương tiện sai làn</li>
+    <li>Chương 4: Giải pháp hệ thống đề xuất</li>
+    <li>Chương 5: Đánh giá và khả năng ứng dụng</li>
+    <li>Chương 6: Kết luận và hướng phát triển</li>
+    <li>Tài liệu tham khảo</li>
+</ol>
+
+<div class="section-break"></div>
+
+<h2>LỜI MỞ ĐẦU</h2>
+
+<p>Ùn tắc giao thông, tai nạn giao thông và tình trạng vi phạm quy tắc giao thông ngày càng trở thành những vấn đề trăn trở của các thành phố hiện đại. Theo thống kê của Ủy ban An toàn Giao thông Quốc gia, hàng năm Việt Nam có hàng chục nghìn vụ tai nạn giao thông xảy ra, làm tổn thất không chỉ về người mà còn về tài sản xã hội. Trong số các nguyên nhân gây tai nạn, vi phạm quy tắc giao thông, đặc biệt là hành vi đi sai làn đường, chiếm một tỷ lệ đáng kể.</p>
+
+<p>Truyền thống, công tác giám sát và xử phạt vi phạm giao thông được thực hiện chủ yếu bằng con người - lực lượng cảnh sát giao thông. Tuy nhiên, với mật độ giao thông gia tăng, phương pháp này gặp phải nhiều hạn chế: không thể giám sát liên tục 24/7, tốn kém nhân lực, dễ xảy ra thiếu khách quan. Cùng với sự phát triển của công nghệ, đặc biệt là sự bùng nổ của Trí tuệ Nhân tạo (AI) và Thị giác Máy tính (Computer Vision), việc xây dựng các hệ thống giao thông thông minh (ITS) để hỗ trợ giám sát và quản lý giao thông đã trở thành xu hướng toàn cầu.</p>
+
+<p>Tiểu luận này nhằm trình bày và phân tích về một giải pháp hệ thống - "Hệ thống nhận diện các phương tiện sai làn trong tham gia giao thông", một ứng dụng cụ thể của ITS, sử dụng các công nghệ hiện đại để tự động phát hiện, ghi nhận và cảnh báo các hành vi vi phạm sai làn đường. Từ đó, đánh giá khả năng ứng dụng thực tế của hệ thống trong bối cảnh phát triển các thành phố thông minh tại Việt Nam.</p>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 1: MỞ ĐẦU</h2>
+
+<h3>1.1. Lý do chọn đề tài</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.1.1. Thực trạng phương tiện đi sai làn tại đô thị</h3>
+
+<p>Trong những năm gần đây, cùng với sự gia tăng nhanh chóng của số lượng phương tiện giao thông (đặc biệt là xe máy), tình trạng giao thông tại các thành phố lớn ngày càng trở nên phức tạp. Các hành vi vi phạm quy tắc giao thông, trong đó sai làn là một trong những dạng phổ biến nhất, xảy ra hàng ngày trên các tuyến đường chính:</p>
+
+<ul>
+    <li>Đi sai làn qui định: Phương tiện không chạy đúng trong làn đường được cấp phép</li>
+    <li>Vượt ẩu, chuyển làn không đúng quy tắc: Thay đổi làn không báo hiệu, không quan sát</li>
+    <li>Lấn làn đối diện: Vượt xe trên làn đường của chiều ngược lại, đặc biệt nguy hiểm</li>
+    <li>Không tuân thủ biển báo phân làn: Bỏ qua các biển cấm, hướng dẫn</li>
+</ul>
+
+<p>Những vi phạm này là nguyên nhân trực tiếp gây ra nhiều tai nạn giao thông, đặc biệt là tai nạn chết người. Theo điều tra, tỷ lệ tai nạn liên quan đến sai làn chiếm khoảng 15-20% trong tổng số tai nạn giao thông.</p>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.1.2. Hạn chế của giám sát thủ công</h3>
+
+<p>Phương pháp giám sát và xử phạt vi phạm truyền thống (qua lực lượng CSGT) gặp phải những hạn chế cơ bản:</p>
+
+<ul>
+    <li><strong>Hạn chế về không gian và thời gian:</strong> Không thể bố trí cảnh sát giao thông tại mọi nơi, mọi lúc. Giám sát phụ thuộc vào lịch tuần tra của lực lượng</li>
+    <li><strong>Yếu tố con người:</strong> Kinh nghiệm của cảnh sát, khả năng quan sát, sự khách quan của việc xác định vi phạm đều có thể bị ảnh hưởng</li>
+    <li><strong>Chi phí nhân lực cao:</strong> Yêu cầu bố trí nhân sự lâu dài, tốn kém về lương, phúc lợi</li>
+    <li><strong>Khó lưu trữ và tra cứu:</strong> Dữ liệu vi phạm thường được lưu trữ rời rạc, khó thống kê và phân tích toàn diện</li>
+    <li><strong>Ít tác động phòng ngừa:</strong> Người vi phạm có thể không bị phát hiện, giảm hiệu quả cảnh báo</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.1.3. Vai trò của ITS trong quản lý giao thông hiện đại</h3>
+
+<p>Hệ thống Giao thông Thông minh (Intelligent Transportation Systems - ITS) đã được chứng minh là một giải pháp hiệu quả để giải quyết các vấn đề giao thông. Các nước phát triển như Nhật Bản, Singapore, Hàn Quốc đã triển khai rộng rãi các hệ thống ITS, đạt được kết quả đáng kể trong:</p>
+
+<ul>
+    <li>Giảm tắc nghẽn giao thông</li>
+    <li>Nâng cao an toàn giao thông</li>
+    <li>Giảm thiểu ô nhiễm môi trường</li>
+    <li>Cải thiện trải nghiệm của người tham gia giao thông</li>
+</ul>
+
+<p>Trong bối cảnh đó, việc xây dựng một hệ thống tự động phát hiện vi phạm sai làn đường là một bước tiến quan trọng hướng tới giao thông thông minh và bền vững tại Việt Nam.</p>
+
+<h3>1.2. Mục tiêu nghiên cứu</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.2.1. Mục tiêu chung</h3>
+
+<p>Nghiên cứu một giải pháp hệ thống tự động phát hiện và cảnh báo các phương tiện vi phạm sai làn đường, đánh giá khả năng ứng dụng thực tế của hệ thống trong bối cảnh phát triển các thành phố thông minh tại Việt Nam.</p>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.2.2. Mục tiêu cụ thể</h3>
+
+<ol>
+    <li><strong>Tìm hiểu về lý thuyết:</strong>
+        <ul>
+            <li>Tìm hiểu khái niệm và thành phần của Hệ thống Giao thông Thông minh (ITS)</li>
+            <li>Nghiên cứu các công nghệ hiện đại như Computer Vision, Deep Learning áp dụng trong ITS</li>
+            <li>Phân tích các phương pháp nhận diện, theo dõi phương tiện và phát hiện vi phạm</li>
+        </ul>
+    </li>
+    <li><strong>Phân tích hệ thống đề xuất:</strong>
+        <ul>
+            <li>Hiểu rõ nguyên lý hoạt động của hệ thống nhận diện sai làn</li>
+            <li>Phân tích kiến trúc, các thành phần và công nghệ sử dụng</li>
+            <li>Đánh giá ưu điểm, hạn chế của hệ thống</li>
+        </ul>
+    </li>
+    <li><strong>Đánh giá khả năng ứng dụng:</strong>
+        <ul>
+            <li>Xác định lợi ích của hệ thống đối với quản lý giao thông</li>
+            <li>Phân tích các thách thức và rào cản trong triển khai</li>
+            <li>Đề xuất các phương hướng phát triển và cải thiện</li>
+        </ul>
+    </li>
+</ol>
+
+<h3>1.3. Phạm vi và phương pháp nghiên cứu</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.3.1. Phạm vi nghiên cứu</h3>
+
+<ul class="no-indent">
+    <li><strong>Đối tượng:</strong> Hệ thống tự động phát hiện phương tiện sai làn đường</li>
+    <li><strong>Không gian:</strong> Giao thông đường bộ đô thị, tập trung vào các tuyến đường chính có multiple lanes</li>
+    <li><strong>Thời gian:</strong> Tiểu luận tập trung vào trạng thái hiện tại của công nghệ (năm 2026)</li>
+    <li><strong>Công nghệ:</strong> Các công nghệ tiên tiến: Computer Vision, Deep Learning, IoT</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">1.3.2. Phương pháp nghiên cứu</h3>
+
+<ul class="no-indent">
+    <li><strong>Nghiên cứu tài liệu:</strong> Tìm hiểu, phân tích các tài liệu, bài báo khoa học, giáo trình liên quan đến ITS, Computer Vision, Deep Learning</li>
+    <li><strong>Phân tích hệ thống:</strong> Phân tích kiến trúc, chức năng, công nghệ áp dụng của hệ thống</li>
+    <li><strong>Phương pháp so sánh:</strong> So sánh với các giải pháp khác, các dự án tương tự</li>
+    <li><strong>Phương pháp tổng hợp:</strong> Tổng hợp các kiến thức, phân tích để đưa ra những nhận xét, đề xuất hợp lý</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 2: TỔNG QUAN VỀ HỆ THỐNG GIAO THÔNG THÔNG MINH</h2>
+
+<h3>2.1. Khái niệm hệ thống giao thông thông minh (ITS)</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.1.1. Định nghĩa ITS</h3>
+
+<p>Hệ thống Giao thông Thông minh (Intelligent Transportation Systems - ITS) được định nghĩa là việc ứng dụng công nghệ thông tin, viễn thông, điện tử, cảm biến, và các công nghệ tiên tiến khác vào lĩnh vực giao thông vận tải. Mục đích của ITS là:</p>
+
+<ul>
+    <li>Cải thiện hiệu quả sử dụng hạ tầng giao thông hiện có</li>
+    <li>Nâng cao an toàn giao thông</li>
+    <li>Giảm thiểu tắc nghẽn và ùn tắc</li>
+    <li>Giảm khí thải và ô nhiễm môi trường</li>
+    <li>Tối ưu hóa vận chuyển hành khách và hàng hóa</li>
+    <li>Cung cấp thông tin và dịch vụ tốt hơn cho người sử dụng</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.1.2. Quá trình hình thành và phát triển</h3>
+
+<p>Khái niệm ITS bắt đầu phát triển từ những năm 1980-1990, khi các nước phát triển như Nhật Bản, Mỹ, Châu Âu nhận thấy nhu cầu ứng dụng công nghệ để quản lý giao thông ngày càng phức tạp. Sự phát triển của ITS đi qua các giai đoạn:</p>
+
+<ul>
+    <li><strong>Giai đoạn 1 (1980s-1990s):</strong> Nghiên cứu và phát triển các hệ thống quản lý giao thông cơ bản, đèn giao thông thông minh</li>
+    <li><strong>Giai đoạn 2 (2000s):</strong> Tích hợp công nghệ GPS, GIS; phát triển các ứng dụng mobile</li>
+    <li><strong>Giai đoạn 3 (2010s-2020s):</strong> Ứng dụng Big Data, AI, Machine Learning, IoT; phát triển xe tự lái; smart cities</li>
+</ul>
+
+<h3>2.2. Các thành phần chính của ITS</h3>
+
+<p>Một hệ thống ITS hoàn chỉnh bao gồm các thành phần chính:</p>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.2.1. Thiết bị thu thập dữ liệu</h3>
+
+<ul>
+    <li>Camera giám sát: Thu thập hình ảnh và video từ các tuyến đường</li>
+    <li>Cảm biến giao thông: Cảm biến áp lực, cảm biến chuyển động, cảm biến IR</li>
+    <li>Thiết bị định vị GPS: Thu thập dữ liệu vị trí phương tiện</li>
+    <li>Radar và Lidar: Phát hiện vật cản, đo khoảng cách</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.2.2. Hệ thống truyền thông</h3>
+
+<ul>
+    <li>Mạng viễn thông: 4G, 5G, WiFi 6</li>
+    <li>Truyền thông không dây: Giao tiếp giữa các thiết bị, xe cộ</li>
+    <li>Cloud computing: Xử lý dữ liệu tập trung, lưu trữ</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.2.3. Trung tâm xử lý và điều khiển</h3>
+
+<ul>
+    <li>Hệ thống xử lý dữ liệu: Server, máy tính, AI engines</li>
+    <li>Hệ thống quản lý và điều khiển: Phần mềm quản lý giao thông, điều phối đèn giao thông</li>
+    <li>Cơ sở dữ liệu: Lưu trữ dữ liệu giao thông, thông tin vi phạm, bản đồ</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.2.4. Người tham gia giao thông</h3>
+
+<ul>
+    <li>Lái xe: Nhận thông tin, dự báo tình trạng giao thông</li>
+    <li>Hành khách: Sử dụng dịch vụ giao thông công cộng thông minh</li>
+    <li>Quản lý giao thông: Giám sát, điều phối, xử phạt vi phạm</li>
+</ul>
+
+<h3>2.3. Ứng dụng ITS trong giám sát giao thông</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.3.1. Giám sát vi phạm giao thông</h3>
+
+<p>ITS cung cấp các công cụ để tự động phát hiện các loại vi phạm giao thông:</p>
+
+<ul>
+    <li>Vượt đèn đỏ: Phát hiện phương tiện vượt qua đèn giao thông khi tín hiệu đỏ</li>
+    <li>Quá tốc độ: Đo tốc độ phương tiện so với giới hạn cho phép</li>
+    <li>Sai làn đường: Phát hiện phương tiện không chạy đúng làn được cấp phép</li>
+    <li>Nhận diện biển số xe: Tự động ghi nhận thông tin biển số các phương tiện vi phạm</li>
+    <li>Phát hiện tai nạn: Cảnh báo khi xảy ra tai nạn giao thông</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.3.2. Nhận diện phương tiện và hành vi</h3>
+
+<p>ITS sử dụng các công nghệ để nhận diện và phân loại phương tiện, cũng như phát hiện các hành vi lái xe nguy hiểm:</p>
+
+<ul>
+    <li>Phân loại phương tiện: Phân biệt ô tô, xe máy, xe tải, xe buýt, v.v.</li>
+    <li>Theo dõi chuyển động: Ghi lại quỹ đạo, tốc độ, gia tốc của phương tiện</li>
+    <li>Phát hiện hành vi nguy hiểm: Lái xe đột ngột, thay đổi làn liên tục, v.v.</li>
+    <li>Nhân diện tài xế: Sử dụng công nghệ nhận diện khuôn mặt (trong các trường hợp cụ thể)</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">2.3.3. Vai trò của AI trong ITS</h3>
+
+<p>Trí tuệ Nhân tạo đóng vai trò then chốt trong hiện đại hóa ITS:</p>
+
+<ul>
+    <li><strong>Phát hiện đối tượng (Object Detection):</strong> Sử dụng Deep Learning để tự động phát hiện phương tiện, người, vật cản trong hình ảnh camera</li>
+    <li><strong>Theo dõi đối tượng (Object Tracking):</strong> Ghi lại quỹ đạo của từng phương tiện qua các frame video</li>
+    <li><strong>Phân loại hành vi (Behavior Classification):</strong> Xác định liệu một hành vi có phải là vi phạm hay không</li>
+    <li><strong>Dự báo và cảnh báo:</strong> Dự đoán tình trạng giao thông, cảnh báo trước tai nạn tiềm tàng</li>
+    <li><strong>Tối ưu hóa đèn giao thông:</strong> Điều chỉnh thời gian đèn giao thông dựa trên lưu lượng giao thông thực tế</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 3: BÀI TOÁN NHẬN DIỆN PHƯƠNG TIỆN SAI LÀN</h2>
+
+<h3>3.1. Khái niệm và phân loại vi phạm sai làn</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.1.1. Định nghĩa sai làn theo luật giao thông</h3>
+
+<p>Theo Luật Giao thông Đường bộ của Việt Nam, việc chạy đúng trong làn đường được cấp phép là một trong những quy tắc cơ bản. Vi phạm sai làn được định nghĩa là:</p>
+
+<ul>
+    <li><strong>Chạy sai làn qui định:</strong> Phương tiện chạy ngoài phạm vi của làn đường được cấp phép</li>
+    <li><strong>Vượt ẩu:</strong> Thay đổi làn để vượt xe khác một cách bất an toàn</li>
+    <li><strong>Lấn làn đối diện:</strong> Sử dụng làn đường của chiều ngược lại</li>
+    <li><strong>Không chuyển làn đúng cách:</strong> Thay đổi làn không báo tín hiệu, không quan sát an toàn</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.1.2. Các dạng sai làn phổ biến</h3>
+
+<p>Trong thực tế, có nhiều dạng sai làn khác nhau tùy vào tình huống:</p>
+
+<ol>
+    <li>Sai làn ở đoạn thẳng: Phương tiện di chuyển ra ngoài làn được cấp phép trên đoạn đường thẳng</li>
+    <li>Sai làn ở ngã tư/giao lộ: Vi phạm qui tắc phân làn tại các giao lộ</li>
+    <li>Sai làn khi quay: Phương tiện không tuân thủ làn quay được chỉ định</li>
+    <li>Sai làn khi vượt xe: Sử dụng làn khác để vượt mà không an toàn</li>
+    <li>Sai làn khi đỗ xe: Đỗ xe trên làn được chỉ định là cấm</li>
+</ol>
+
+<p>Mỗi dạng vi phạm này có mức độ nguy hiểm khác nhau, từ đó cũng có mức xử phạt khác nhau.</p>
+
+<h3>3.2. Thách thức trong nhận diện sai làn</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.2.1. Điều kiện ánh sáng và thời tiết</h3>
+
+<ul>
+    <li><strong>Ban ngày:</strong> Ánh sáng tự nhiên tốt, tuy nhiên vẫn có phản chiếu, bóng dáng gây khó khăn</li>
+    <li><strong>Ban đêm:</strong> Ánh sáng kém, phục thuộc vào hệ thống chiếu sáng đường phố</li>
+    <li><strong>Thời tiết xấu:</strong> Mưa, sương mù, bụi giảm độ rõ nét của hình ảnh camera</li>
+    <li><strong>Góc nhìn thay đổi:</strong> Các loại camera khác nhau, góc lắp đặt khác nhau</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.2.2. Mật độ phương tiện cao</h3>
+
+<ul>
+    <li><strong>Phương tiện chồng chéo:</strong> Nhiều phương tiện gần nhau khiến việc xác định ranh giới làn khó khăn</li>
+    <li><strong>Tốc độ cao:</strong> Phương tiện di chuyển nhanh làm giảm độ chính xác của hệ thống</li>
+    <li><strong>Nhiều loại phương tiện:</strong> Từ phương tiện hai bánh đến bốn bánh, kích thước khác nhau</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.2.3. Che khuất và góc camera</h3>
+
+<ul>
+    <li><strong>Che khuất:</strong> Phương tiện bị che khuất bởi phương tiện khác hoặc các vật thể khác</li>
+    <li><strong>Góc camera:</strong> Không phải mọi camera đều có góc nhìn tốt để xác định làn đường</li>
+    <li><strong>Biến dạng hình ảnh:</strong> Góc nhìn quá sâu hoặc quá ngang gây biến dạng hình ảnh</li>
+</ul>
+
+<h3>3.3. Yêu cầu đối với hệ thống nhận diện</h3>
+
+<p>Để có thể hoạt động hiệu quả trong thực tế, một hệ thống nhận diện sai làn phải thỏa mãn các yêu cầu:</p>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.3.1. Độ chính xác</h3>
+
+<ul>
+    <li><strong>Phát hiện đúng vi phạm:</strong> Hệ thống phải phát hiện đúng các phương tiện thực sự vi phạm</li>
+    <li><strong>Tránh phát hiện sai:</strong> Tối thiểu hóa số lượng cảnh báo sai (false positive)</li>
+    <li><strong>Độ tin cậy cao:</strong> Độ chính xác ≥ 85% để có thể sử dụng trong thực tế</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.3.2. Thời gian xử lý</h3>
+
+<ul>
+    <li><strong>Xử lý real-time:</strong> Có thể xử lý video ≥ 30 FPS</li>
+    <li><strong>Độ trễ thấp:</strong> Phát hiện vi phạm gần như tức thời</li>
+    <li><strong>Hiệu quả xử lý:</strong> Có thể xử lý đồng thời nhiều camera</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.3.3. Khả năng mở rộng</h3>
+
+<ul>
+    <li><strong>Hỗ trợ nhiều camera:</strong> Có thể tích hợp với hệ thống camera hiện có</li>
+    <li><strong>Mở rộng địa lý:</strong> Có thể triển khai tại nhiều vị trí khác nhau</li>
+    <li><strong>Cải thiện liên tục:</strong> Có thể cập nhật mô hình, tham số để cải thiện độ chính xác</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">3.3.4. Tính tự động</h3>
+
+<ul>
+    <li><strong>Không cần can thiệp thủ công:</strong> Hệ thống hoạt động tự động mà không cần lực lượng giám sát</li>
+    <li><strong>Ghi nhận tự động:</strong> Tự động lưu trữ dữ liệu vi phạm mà không cần nhân viên ghi chép</li>
+    <li><strong>Thông báo tự động:</strong> Cảnh báo tự động các vi phạm cho lực lượng quản lý</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 4: GIẢI PHÁP HỆ THỐNG ĐỀ XUẤT</h2>
+
+<h3>4.1. Kiến trúc tổng thể hệ thống</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.1.1. Mô hình thu thập – xử lý – lưu trữ – hiển thị</h3>
+
+<p>Hệ thống nhận diện sai làn được thiết kế theo mô hình xử lý dữ liệu tuần tự:</p>
+
+<ol>
+    <li><strong>Tầng thu thập (Acquisition Layer):</strong> Tiếp nhận dữ liệu từ camera giám sát</li>
+    <li><strong>Tầng xử lý (Processing Layer):</strong> Phân tích hình ảnh, phát hiện phương tiện, kiểm tra vi phạm</li>
+    <li><strong>Tầng lưu trữ (Storage Layer):</strong> Lưu trữ dữ liệu hình ảnh, video, thông tin vi phạm</li>
+    <li><strong>Tầng hiển thị (Presentation Layer):</strong> Cung cấp giao diện cho người sử dụng, quản lý, báo cáo</li>
+</ol>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.1.2. Vai trò của từng thành phần</h3>
+
+<ul>
+    <li><strong>Camera:</strong> Thu thập hình ảnh trong thời gian thực</li>
+    <li><strong>Edge Device:</strong> Xử lý sơ bộ, trích xuất các đặc trưng quan trọng</li>
+    <li><strong>Server trung tâm:</strong> Xử lý sâu, AI inference, lưu trữ dữ liệu</li>
+    <li><strong>Database:</strong> Lưu trữ dữ liệu lịch sử, thông tin vi phạm</li>
+    <li><strong>Web/Mobile Application:</strong> Giao diện cho người dùng cuối, lực lượng quản lý</li>
+</ul>
+
+<h3>4.2. Nguyên lý hoạt động của hệ thống</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.2.1. Thu thập dữ liệu từ camera</h3>
+
+<p>Hệ thống khởi động bằng việc tiếp nhận luồng video từ camera giám sát tại vị trí được lắp đặt. Camera được lắp đặt ở vị trí cao, góc nhìn bao quát toàn bộ các làn đường được giám sát.</p>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.2.2. Phát hiện và theo dõi phương tiện</h3>
+
+<p>Sử dụng các mô hình Deep Learning (như YOLO - You Only Look Once):</p>
+
+<ul>
+    <li>Phát hiện tất cả các phương tiện trong mỗi frame</li>
+    <li>Trích xuất thông tin: vị trí (bounding box), loại phương tiện, độ tin cậy</li>
+    <li>Gán ID duy nhất cho mỗi phương tiện và theo dõi nó qua các frame tiếp theo</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.2.3. Xác định làn đường</h3>
+
+<p>Sử dụng các phương pháp Computer Vision (Canny Edge Detection, Hough Transform):</p>
+
+<ul>
+    <li>Phát hiện các đường vạch làn trong hình ảnh</li>
+    <li>Xác định ranh giới của từng làn đường</li>
+    <li>Hoặc cho phép người dùng định nghĩa các vùng làn tùy chỉnh qua giao diện web</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.2.4. Phát hiện vi phạm sai làn</h3>
+
+<ul>
+    <li>Kiểm tra vị trí trung tâm của phương tiện so với ranh giới làn</li>
+    <li>Nếu phương tiện nằm ngoài làn được qui định → phát hiện vi phạm</li>
+    <li>Xác nhận vi phạm qua nhiều frame liên tiếp (temporal smoothing) để giảm false positive</li>
+    <li>Ghi nhận: track ID, frame, hình ảnh, thời gian, loại phương tiện, độ tin cậy</li>
+</ul>
+
+<h3>4.3. Công nghệ áp dụng</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.3.1. Thị giác máy tính (Computer Vision)</h3>
+
+<ul>
+    <li><strong>Xử lý ảnh:</strong> Cải thiện chất lượng hình ảnh (contrast, brightness)</li>
+    <li><strong>Phát hiện cạnh:</strong> Xác định các đường vạch làn</li>
+    <li><strong>Phân đoạn ảnh:</strong> Tách riêng đối tượng cần quan tâm khỏi nền</li>
+    <li><strong>Theo dõi chuyển động:</strong> Ghi lại quỹ đạo của phương tiện</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.3.2. Trí tuệ nhân tạo - Deep Learning</h3>
+
+<ul>
+    <li><strong>Convolutional Neural Networks (CNN):</strong> Kiến trúc mạng chuyên biệt cho xử lý ảnh</li>
+    <li><strong>Object Detection Models:</strong> YOLO, Faster R-CNN, SSD để phát hiện phương tiện</li>
+    <li><strong>Object Tracking:</strong> Thuật toán DeepSORT để theo dõi phương tiện qua các frame</li>
+    <li><strong>Transfer Learning:</strong> Sử dụng các mô hình pre-trained, tinh chỉnh cho tác vụ cụ thể</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.3.3. IoT và truyền thông dữ liệu</h3>
+
+<ul>
+    <li><strong>Camera IoT:</strong> Camera có khả năng kết nối mạng, truyền video trực tiếp</li>
+    <li><strong>Cảm biến thông minh:</strong> Cảm biến giao thông bổ sung cho camera</li>
+    <li><strong>Mạng viễn thông:</strong> 4G/5G để truyền dữ liệu real-time</li>
+    <li><strong>Cloud Computing:</strong> Xử lý dữ liệu tập trung, tính toán phân tán</li>
+</ul>
+
+<h3>4.4. Vai trò hệ thống trong ITS</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.4.1. Hỗ trợ lực lượng quản lý giao thông</h3>
+
+<ul>
+    <li><strong>Ghi nhận tự động:</strong> Tự động phát hiện và ghi nhận vi phạm mà không cần con người</li>
+    <li><strong>Giảm tải công việc:</strong> Lực lượng CSGT có thể tập trung vào các công việc khác</li>
+    <li><strong>Dữ liệu khách quan:</strong> Hệ thống cung cấp dữ liệu khách quan, không phụ thuộc tâm trạng con người</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.4.2. Tăng hiệu quả giám sát</h3>
+
+<ul>
+    <li><strong>Giám sát 24/7:</strong> Hệ thống hoạt động liên tục, không mệt mỏi như con người</li>
+    <li><strong>Bao phủ rộng:</strong> Một hệ thống có thể giám sát nhiều tuyến đường</li>
+    <li><strong>Phản ứng nhanh:</strong> Cảnh báo tức thời khi phát hiện vi phạm</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">4.4.3. Giảm tai nạn và ùn tắc</h3>
+
+<ul>
+    <li><strong>Tác dụng phòng ngừa:</strong> Người tham gia giao thông biết sẽ bị phát hiện, có ý thức chấp hành luật</li>
+    <li><strong>Giảm hành vi nguy hiểm:</strong> Hành vi sai làn được phát hiện ngay, giảm độ nguy hiểm</li>
+    <li><strong>Giảm tai nạn:</strong> Khi hành vi nguy hiểm giảm, số tai nạn giao thông cũng giảm</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 5: ĐÁNH GIÁ VÀ KHẢ NĂNG ỨNG DỤNG</h2>
+
+<h3>5.1. Lợi ích của hệ thống</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.1.1. Tự động hóa giám sát</h3>
+
+<p>Hệ thống tự động phát hiện và ghi nhận vi phạm mà không cần can thiệp con người. Điều này mang lại những lợi ích:</p>
+
+<ul>
+    <li><strong>Giảm lỗi con người:</strong> Loại bỏ các sai sót trong quá trình xác định vi phạm</li>
+    <li><strong>Tính nhất quán:</strong> Các tiêu chí phát hiện vi phạm luôn nhất quán, không thay đổi</li>
+    <li><strong>Lưu trữ toàn bộ dữ liệu:</strong> Tất cả các vi phạm được ghi nhận, không có trường hợp bỏ sót</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.1.2. Tiết kiệm chi phí nhân lực</h3>
+
+<ul>
+    <li><strong>Giảm nhu cầu nhân sự:</strong> Cần ít lực lượng CSGT để tuần tra và giám sát</li>
+    <li><strong>Tiết kiệm chi phí:</strong> Giảm chi phí lương, phúc lợi, trang thiết bị cho lực lượng tuần tra</li>
+    <li><strong>Tái bố trí nhân lực:</strong> Lực lượng CSGT có thể chuyên tâm vào công tác phòng chống tai nạn, hỗ trợ giao thông</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.1.3. Nâng cao ý thức người tham gia giao thông</h3>
+
+<ul>
+    <li><strong>Tác dụng phòng ngừa:</strong> Khi biết sẽ bị phát hiện, người tham gia giao thông có ý thức hơn</li>
+    <li><strong>Tuân thủ luật:</strong> Hành vi vi phạm giảm khi biết chắc chắn sẽ bị xử phạt</li>
+    <li><strong>Cải thiện văn hóa giao thông:</strong> Dần hình thành thói quen tuân thủ luật lệ</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.1.4. Thống kê và phân tích nâng cao</h3>
+
+<ul>
+    <li><strong>Dữ liệu chi tiết:</strong> Hệ thống cung cấp dữ liệu chi tiết về các vi phạm</li>
+    <li><strong>Phân tích xu hướng:</strong> Có thể phân tích xu hướng vi phạm theo thời gian, vị trí</li>
+    <li><strong>Hỗ trợ ra quyết định:</strong> Dữ liệu giúp các nhà quản lý đưa ra quyết định tốt hơn</li>
+</ul>
+
+<h3>5.2. Hạn chế và thách thức</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.2.1. Chi phí đầu tư</h3>
+
+<ul>
+    <li><strong>Chi phí camera:</strong> Cần lắp đặt hệ thống camera chất lượng cao tại nhiều vị trí</li>
+    <li><strong>Chi phí server và hạ tầng:</strong> Cần máy chủ mạnh, hệ thống storage lớn</li>
+    <li><strong>Chi phí nhân lực:</strong> Cần đội ngũ kỹ sư, lập trình viên để xây dựng, maintain hệ thống</li>
+    <li><strong>Chi phí triển khai:</strong> Tổng chi phí ban đầu khá cao</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.2.2. Phụ thuộc chất lượng camera</h3>
+
+<ul>
+    <li><strong>Độ phân giải camera:</strong> Camera có độ phân giải thấp sẽ giảm độ chính xác phát hiện</li>
+    <li><strong>Góc lắp đặt:</strong> Góc camera không tốt sẽ ảnh hưởng đến kết quả</li>
+    <li><strong>Bảo trì camera:</strong> Camera cần được bảo trì định kỳ, vệ sinh sạch</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.2.3. Vấn đề bảo mật dữ liệu</h3>
+
+<ul>
+    <li><strong>Dữ liệu cá nhân:</strong> Hệ thống lưu trữ hình ảnh biển số xe, có thể được xem là dữ liệu cá nhân</li>
+    <li><strong>Bảo vệ quyền riêng tư:</strong> Cần có chính sách bảo vệ quyền riêng tư, không sử dụng dữ liệu vào mục đích khác</li>
+    <li><strong>An toàn thông tin:</strong> Dữ liệu cần được bảo vệ khỏi truy cập trái phép</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.2.4. Các thách thức khác</h3>
+
+<ul>
+    <li><strong>Xác định ranh giới làn:</strong> Trong một số tình huống, ranh giới làn không rõ ràng</li>
+    <li><strong>Phương tiện che khuất:</strong> Phương tiện bị che khuất có thể không được phát hiện</li>
+    <li><strong>Góc camera hạn chế:</strong> Không phải mọi góc camera đều thích hợp</li>
+</ul>
+
+<h3>5.3. Khả năng triển khai tại Việt Nam</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.3.1. Thực trạng hạ tầng</h3>
+
+<ul>
+    <li><strong>Hệ thống camera:</strong> Một số thành phố lớn đã có hệ thống camera giám sát ban đầu</li>
+    <li><strong>Mạng 4G/5G:</strong> Hạ tầng mạng viễn thông ngày càng phát triển, tốc độ ngày càng nhanh</li>
+    <li><strong>Máy chủ điện toán:</strong> Đã có những nhà cung cấp dịch vụ cloud tại Việt Nam</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.3.2. Các dự án ITS đang triển khai</h3>
+
+<ul>
+    <li><strong>TP Hồ Chí Minh:</strong> Triển khai hệ thống SCATS (Sydney Coordinated Adaptive Traffic System)</li>
+    <li><strong>Hà Nội:</strong> Xây dựng hệ thống quản lý giao thông thông minh</li>
+    <li><strong>Các thành phố khác:</strong> Một số thành phố khác cũng đang triển khai các hệ thống ITS</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">5.3.3. Tiềm năng ứng dụng</h3>
+
+<ul>
+    <li><strong>Bắt đầu từ các thành phố lớn:</strong> Triển khai đầu tiên ở các thành phố có nhu cầu cao nhất</li>
+    <li><strong>Mở rộng từng bước:</strong> Dần mở rộng sang các thành phố trung, nhỏ</li>
+    <li><strong>Tích hợp với hệ thống hiện có:</strong> Tích hợp với camera, đèn giao thông hiện có</li>
+    <li><strong>Phát triển nhân lực:</strong> Cần đào tạo nguồn nhân lực phù hợp</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>CHƯƠNG 6: KẾT LUẬN VÀ HƯỚNG PHÁT TRIỂN</h2>
+
+<h3>6.1. Kết luận</h3>
+
+<p>Tiểu luận đã trình bày và phân tích về <strong>Hệ thống nhận diện các phương tiện sai làn trong tham gia giao thông</strong>, một ứng dụng quan trọng của Hệ thống Giao thông Thông minh (ITS) trong bối cảnh phát triển các thành phố thông minh tại Việt Nam.</p>
+
+<p>Các kết luận chính:</p>
+
+<ol>
+    <li><strong>Nhu cầu thực tế:</strong> Vi phạm sai làn đường là một vấn đề thực tế đang xảy ra hàng ngày trên các tuyến đường, gây ra tai nạn giao thông nghiêm trọng. Phương pháp giám sát truyền thống có nhiều hạn chế về không gian, thời gian, nhân lực.</li>
+    <li><strong>Khả thi của giải pháp:</strong> Với sự phát triển của Computer Vision, Deep Learning, và IoT, xây dựng một hệ thống tự động phát hiện sai làn là hoàn toàn khả thi. Các công nghệ như YOLO, CNN đã chứng minh hiệu quả cao trong phát hiện đối tượng.</li>
+    <li><strong>Lợi ích tiềm tàng:</strong> Hệ thống mang lại những lợi ích đáng kể:
+        <ul>
+            <li>Tự động hóa giám sát</li>
+            <li>Tiết kiệm chi phí nhân lực</li>
+            <li>Nâng cao ý thức tuân thủ luật</li>
+            <li>Cung cấp dữ liệu chi tiết cho phân tích</li>
+        </ul>
+    </li>
+    <li><strong>Thách thức còn tồn tại:</strong> Tuy nhiên, hệ thống vẫn phải đối mặt với những thách thức:
+        <ul>
+            <li>Chi phí đầu tư khá cao</li>
+            <li>Phụ thuộc vào chất lượng camera</li>
+            <li>Các vấn đề bảo mật dữ liệu cần được giải quyết</li>
+        </ul>
+    </li>
+    <li><strong>Triển khai tại Việt Nam:</strong> Với hạ tầng công nghệ thông tin ngày càng phát triển và sự quan tâm của các thành phố, việc triển khai hệ thống này tại Việt Nam là hoàn toàn khả thi. Nên bắt đầu từ các thành phố lớn, các tuyến đường có mật độ giao thông cao.</li>
+</ol>
+
+<h3>6.2. Hướng phát triển</h3>
+
+<h3 style="font-weight: normal; margin-top: 10px;">6.2.1. Mở rộng nhận diện hành vi vi phạm</h3>
+
+<p>Ngoài phát hiện sai làn, hệ thống có thể được mở rộng để phát hiện các hành vi vi phạm khác:</p>
+
+<ul>
+    <li>Vượt đèn đỏ</li>
+    <li>Quá tốc độ</li>
+    <li>Không đội mũ bảo hiểm</li>
+    <li>Sử dụng điện thoại khi lái xe</li>
+    <li>Lái xe sau khi uống rượu</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">6.2.2. Tích hợp xử phạt nguội</h3>
+
+<ul>
+    <li><strong>Tự động phát sinh biên bản:</strong> Hệ thống tự động tạo biên bản vi phạm</li>
+    <li><strong>Cảnh báo chủ xe:</strong> Thông báo cho chủ xe thông qua email, SMS, ứng dụng</li>
+    <li><strong>Thanh toán trực tuyến:</strong> Cho phép chủ xe nộp phạt trực tuyến</li>
+    <li><strong>Tích hợp với cơ sở dữ liệu:</strong> Liên kết với cơ sở dữ liệu đăng ký xe, tài xế</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">6.2.3. Hướng tới giao thông thông minh và bền vững</h3>
+
+<ul>
+    <li><strong>Tích hợp với hệ thống đèn giao thông:</strong> Điều chỉnh đèn giao thông dựa trên tình trạng giao thông</li>
+    <li><strong>Phát triển ứng dụng mobile:</strong> Cung cấp thông tin giao thông thực tế cho người lái xe</li>
+    <li><strong>Phân tích và dự báo:</strong> Dự báo tình trạng giao thông, cảnh báo trước tắc nghẽn</li>
+    <li><strong>Hỗ trợ phương tiện tự lái:</strong> Cung cấp thông tin cho các hệ thống tự lái</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">6.2.4. Cải thiện công nghệ</h3>
+
+<ul>
+    <li><strong>Sử dụng các mô hình AI tiên tiến hơn:</strong> Áp dụng Transformer, Vision Transformer</li>
+    <li><strong>Nhận diện biển số xe:</strong> Tích hợp OCR để tự động đọc biển số</li>
+    <li><strong>Tăng độ chính xác:</strong> Tinh chỉnh mô hình, collect thêm dữ liệu training</li>
+    <li><strong>Xử lý edge:</strong> Di chuyển một phần xử lý lên các thiết bị edge để giảm latency</li>
+</ul>
+
+<h3 style="font-weight: normal; margin-top: 10px;">6.2.5. Phát triển nhân lực</h3>
+
+<ul>
+    <li><strong>Đào tạo kỹ sư:</strong> Cần đào tạo nguồn nhân lực biết về AI, Computer Vision</li>
+    <li><strong>Hợp tác với đại học:</strong> Liên kết với các đại học để phát triển nhân lực</li>
+    <li><strong>Tạo hệ sinh thái:</strong> Khuyến khích các startup phát triển các ứng dụng liên quan</li>
+</ul>
+
+<div class="section-break"></div>
+
+<h2>TÀI LIỆU THAM KHẢO</h2>
+
+<h3>Sách chuyên ngành</h3>
+
+<ol class="no-indent">
+    <li>Goodfellow, I., Bengio, Y., & Courville, A. (2016). <em>Deep Learning</em>. MIT Press.</li>
+    <li>Prince, S. J. D. (2012). <em>Computer Vision: Models, Learning, and Inference</em>. Cambridge University Press.</li>
+    <li>Szeliski, R. (2022). <em>Computer Vision: Algorithms and Applications</em> (2nd ed.). Springer.</li>
+    <li>Bradski, G., & Kaehler, A. (2008). <em>Learning OpenCV: Computer Vision with the OpenCV Library</em>. O'Reilly Media.</li>
+</ol>
+
+<h3>Bài báo khoa học</h3>
+
+<ol class="no-indent">
+    <li>Redmon, J., Divvala, S., Girshick, R., & Farhadi, A. (2016). You Only Look Once: Unified, Real-Time Object Detection. <em>CVPR 2016</em>, 779-788.</li>
+    <li>Bochkovskiy, A., Wang, C. Y., & Liao, H. Y. M. (2020). YOLOv4: Optimal Speed and Accuracy of Object Detection. <em>arXiv preprint arXiv:2004.10934</em>.</li>
+    <li>Wojke, N., Bewley, A., & Paulus, D. (2017). Simple Online and Realtime Tracking with a Deep Association Metric. <em>ICIP 2017</em>, 3645-3649.</li>
+    <li>Ismail Fawaz, H., Forestier, G., Weber, J., Idoumghar, L., & Muller, P. A. (2019). Deep learning for time series classification: A review. <em>Data Mining and Knowledge Discovery</em>, 33(4), 917-963.</li>
+</ol>
+
+<h3>Tài liệu chính sách</h3>
+
+<ol class="no-indent">
+    <li>Luật Giao thông Đường bộ 2024 - Luật số 106/2024/QH15 của Quốc hội Nước Cộng hòa Xã hội Chủ nghĩa Việt Nam.</li>
+    <li>Quyết định số 2119/QĐ-TTg năm 2015 của Thủ tướng Chính phủ về phê duyệt Chiến lược phát triển giao thông vận tải bền vững đến năm 2020.</li>
+    <li>Quyết định số 1939/QĐ-TTg năm 2019 của Thủ tướng Chính phủ về Chương trình phát triển giao thông vận tải hành khách công cộng.</li>
+</ol>
+
+<h3>Báo cáo quốc tế</h3>
+
+<ol class="no-indent">
+    <li>World Health Organization (2022). <em>Global status report on road safety 2023</em>. ISBN: 978-92-4-007316-9.</li>
+    <li>International Transport Forum (2023). <em>Towards Zero Road Deaths and Serious Injuries</em>. OECD Publishing.</li>
+</ol>
+
+<h3>Websites và tài liệu online</h3>
+
+<ol class="no-indent">
+    <li>IEEE Xplore Digital Library - https://ieeexplore.ieee.org/</li>
+    <li>Springer Nature Open Research - https://www.springernature.com/gp/researchers</li>
+    <li>ArXiv.org - https://arxiv.org/ (Computer Vision and Pattern Recognition)</li>
+    <li>Ủy ban An toàn Giao thông Quốc gia - https://www.antoangiaothong.gov.vn/</li>
+</ol>
+
+<div style="margin-top: 50px; padding-top: 20px; border-top: 2px solid #000;">
+    <p class="center no-indent" style="margin: 20px 0;"><strong>KẾT THÚC TIỂU LUẬN</strong></p>
+    <p class="center no-indent" style="margin: 20px 0;">Ngày hoàn thành: 26/01/2026</p>
+    <p class="no-indent" style="margin-top: 30px;"><strong>Sinh viên thực hiện:</strong></p>
+    <p class="no-indent" style="margin: 30px 0 60px 0;">(Ký tên)</p>
+    <p class="no-indent" style="margin-top: 30px;"><strong>Giảng viên hướng dẫn:</strong></p>
+    <p class="no-indent" style="margin: 30px 0;">(Ký tên và nhận xét)</p>
+</div>
+
+</body>
+</html>

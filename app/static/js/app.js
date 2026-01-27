@@ -116,6 +116,12 @@ class App {
             });
         });
 
+        // Reset stats button
+        const resetStatsBtn = document.getElementById('resetStatsBtn');
+        if (resetStatsBtn) {
+            resetStatsBtn.addEventListener('click', () => this.resetAllStats());
+        }
+
         // Show Zones section when file is uploaded
         document.getElementById('fileInput')?.addEventListener('change', () => {
             this.showZonesSection();
@@ -241,12 +247,14 @@ class App {
             this.uploadedFilePath = uploadResponse.filepath;
             this.previewUrl = uploadResponse.preview_url;
             
-            // Store in global state for zones editor
+            // Store in global state for zones editor BEFORE initializing editor
             window.AppState = {
                 currentTaskId: this.currentTaskId,
                 previewUrl: this.previewUrl,
                 uploadedFilePath: this.uploadedFilePath
             };
+            
+            console.log('AppState set:', window.AppState);
             
             UI.showToast('Tập tin đã tải lên. Vui lòng định nghĩa vùng trước khi xử lý...', 'info');
 
@@ -258,32 +266,22 @@ class App {
 
             // Switch to zones view for zone definition
             UI.showSection('zones');
+            
             // Ensure zone editor is initialized with current task
             try {
                 const currentTaskId = this.currentTaskId;
                 if (!window.zoneEditor || window.zoneEditor.taskId !== currentTaskId) {
                     window.zoneEditor = new ZoneEditor(currentTaskId);
+                } else {
+                    // If reusing existing editor, reload preview
+                    if (uploadResponse.preview_url) {
+                        window.zoneEditor.loadPreviewImage(uploadResponse.preview_url);
+                    }
                 }
             } catch (e) {
                 console.error('Failed to initialize ZoneEditor:', e);
             }
             
-            // Show frame preview in zones editor if available
-            if (uploadResponse.preview_url) {
-                const previewImg = document.querySelector('#zonesCanvas');
-                if (previewImg) {
-                    // Load preview as background in zone editor
-                    const img = new Image();
-                    img.onload = () => {
-                        const canvas = previewImg;
-                        const ctx = canvas.getContext('2d');
-                        canvas.width = 1280;
-                        canvas.height = 720;
-                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    };
-                    img.src = uploadResponse.preview_url;
-                }
-            }
             // Ensure zones-panel process button remains disabled until zones created
             UI.setProcessButtons(true, false);
             
@@ -387,6 +385,18 @@ class App {
 
             if (tasks.length === 0) {
                 resultsList.innerHTML = '<p class="empty-state">Chưa có kết quả</p>';
+                
+                // Clear all statistics when no tasks
+                const totalDetectedEl = document.getElementById('totalDetectedVehicles');
+                const totalViolatingEl = document.getElementById('totalViolatingVehicles2');
+                const totalViopsEl = document.getElementById('totalViolationsCount');
+                const avgAccuracyEl = document.getElementById('avgAccuracyResults');
+                
+                if (totalDetectedEl) totalDetectedEl.textContent = '0';
+                if (totalViolatingEl) totalViolatingEl.textContent = '0';
+                if (totalViopsEl) totalViopsEl.textContent = '0';
+                if (avgAccuracyEl) avgAccuracyEl.textContent = '-';
+                
                 return;
             }
 
@@ -613,6 +623,53 @@ class App {
             }
         } catch (error) {
             UI.showToast('Lỗi xuất PDF: ' + error.message, 'error');
+        }
+    }
+
+    async resetAllStats() {
+        if (!confirm('Bạn có chắc muốn xóa tất cả tasks và reset thống kê về 0? Hành động này không thể hoàn tác!')) {
+            return;
+        }
+
+        try {
+            UI.showToast('Đang reset...', 'info');
+            console.log('Calling /tasks/clear API...');
+            const response = await api.post('/tasks/clear', {});
+            
+            console.log('Reset response:', response);
+            if (response.success) {
+                UI.showToast('Đã reset thành công!', 'success');
+                
+                // Clear statistics immediately
+                const totalDetectedEl = document.getElementById('totalDetectedVehicles');
+                const totalViolatingEl = document.getElementById('totalViolatingVehicles2');
+                const totalViopsEl = document.getElementById('totalViolationsCount');
+                const avgAccuracyEl = document.getElementById('avgAccuracyResults');
+                
+                if (totalDetectedEl) totalDetectedEl.textContent = '0';
+                if (totalViolatingEl) totalViolatingEl.textContent = '0';
+                if (totalViopsEl) totalViopsEl.textContent = '0';
+                if (avgAccuracyEl) avgAccuracyEl.textContent = '-';
+                
+                console.log('Statistics cleared');
+                
+                // Refresh results and dashboard
+                setTimeout(() => {
+                    console.log('Refreshing results...');
+                    this.refreshResults();
+                }, 500);
+                
+                if (window.dashboard) {
+                    setTimeout(() => {
+                        console.log('Loading real stats...');
+                        window.dashboard.loadRealStats();
+                        dashboard.addActivity('info', 'Đã reset tất cả thống kê');
+                    }, 1000);
+                }
+            }
+        } catch (error) {
+            UI.showToast('Lỗi reset: ' + error.message, 'error');
+            console.error('Reset error:', error);
         }
     }
 
